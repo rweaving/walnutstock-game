@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base href="$FLUTTER_BASE_HREF">
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#1c140d">
+  <meta name="description" content="Walnutstock: Three Days of Peace, Shells &amp; Music — 2D Top-Down Festival Exploration RPG">
+  <meta property="og:title" content="Walnutstock — Three Days of Peace, Shells &amp; Music">
+  <meta property="og:description" content="Explore 5 live concert stages, 30 original sets, 11 walnut cultivars, and Woodstock '69 orchard festivities.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="icons/Icon-512.png">
+  <meta name="twitter:card" content="summary">
+
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Walnutstock">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>Walnutstock — Three Days of Peace, Shells &amp; Music</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #1c140d;
+      color: #f4e3c1;
+      overflow: hidden;
+      font-family: Georgia, 'Times New Roman', serif;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: none;
+    }
+
+    #walnut-loader {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background:
+        radial-gradient(circle at 22% 18%, rgba(255, 0, 110, 0.16) 0%, transparent 46%),
+        radial-gradient(circle at 78% 22%, rgba(255, 190, 11, 0.18) 0%, transparent 48%),
+        radial-gradient(circle at 50% 55%, #382213 0%, #16100b 76%);
+      color: #f4e3c1;
+      z-index: 9999;
+      transition: opacity 0.38s ease, transform 0.38s ease;
+      padding: env(safe-area-inset-top, 12px) 16px env(safe-area-inset-bottom, 12px);
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .wl-beam {
+      position: absolute;
+      top: -15%;
+      width: 38vw;
+      max-width: 340px;
+      height: 120%;
+      pointer-events: none;
+      opacity: 0.22;
+      filter: blur(18px);
+      transform-origin: top center;
+    }
+    .wl-beam-left {
+      left: 10%;
+      background: linear-gradient(180deg, rgba(255, 190, 11, 0.65), transparent 82%);
+      animation: wl-sway-left 5.2s ease-in-out infinite alternate;
+    }
+    .wl-beam-right {
+      right: 10%;
+      background: linear-gradient(180deg, rgba(255, 0, 110, 0.55), transparent 82%);
+      animation: wl-sway-right 5.8s ease-in-out infinite alternate;
+    }
+    @keyframes wl-sway-left {
+      from { transform: rotate(-14deg); }
+      to { transform: rotate(10deg); }
+    }
+    @keyframes wl-sway-right {
+      from { transform: rotate(14deg); }
+      to { transform: rotate(-10deg); }
+    }
+
+    .wl-firefly {
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #ffd166;
+      box-shadow: 0 0 10px 3px rgba(255, 209, 102, 0.75);
+      pointer-events: none;
+      animation: wl-float 4.4s ease-in-out infinite;
+    }
+    .wl-f1 { top: 18%; left: 16%; animation-delay: 0s; }
+    .wl-f2 { top: 28%; right: 18%; animation-delay: -1.3s; background: #06d6a0; box-shadow: 0 0 10px 3px rgba(6, 214, 160, 0.7); }
+    .wl-f3 { bottom: 22%; left: 20%; animation-delay: -2.4s; }
+    .wl-f4 { bottom: 18%; right: 15%; animation-delay: -0.7s; background: #ff9f1c; }
+    @keyframes wl-float {
+      0%, 100% { transform: translate(0, 0) scale(0.85); opacity: 0.35; }
+      50% { transform: translate(8px, -14px) scale(1.25); opacity: 0.95; }
+    }
+
+    .wl-card {
+      position: relative;
+      width: min(440px, 100%);
+      max-height: 94vh;
+      max-height: 94dvh;
+      overflow-y: auto;
+      background: linear-gradient(180deg, rgba(46, 29, 17, 0.95) 0%, rgba(26, 17, 11, 0.97) 100%);
+      border: 2px solid #d49a5a;
+      border-radius: 20px;
+      box-shadow:
+        0 18px 48px rgba(0, 0, 0, 0.68),
+        inset 0 0 0 1px rgba(255, 209, 102, 0.22);
+      padding: 18px 20px 16px;
+      box-sizing: border-box;
+      text-align: center;
+    }
+
+    .wl-pass-ribbon {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 11px;
+      border-radius: 999px;
+      background: rgba(255, 190, 11, 0.14);
+      border: 1px solid rgba(255, 209, 102, 0.45);
+      color: #ffd166;
+      font-size: 10.5px;
+      font-weight: bold;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .wl-title {
+      margin: 0;
+      font-size: clamp(22px, 5.6vw, 29px);
+      letter-spacing: 2.8px;
+      color: #ffd166;
+      text-shadow: 0 2px 10px rgba(255, 190, 11, 0.32);
+    }
+
+    .wl-subtitle {
+      margin: 3px 0 10px;
+      font-size: 12px;
+      color: #e8cfa4;
+      letter-spacing: 0.6px;
+      opacity: 0.9;
+    }
+
+    .wl-stage-box {
+      position: relative;
+      margin: 4px auto 10px;
+      padding: 10px 12px 8px;
+      border-radius: 16px;
+      background: radial-gradient(circle at 50% 62%, rgba(255, 190, 11, 0.17) 0%, rgba(18, 26, 16, 0.78) 76%);
+      border: 1px solid rgba(212, 154, 90, 0.35);
+      cursor: pointer;
+      touch-action: manipulation;
+      overflow: hidden;
+    }
+    .wl-stage-box:active {
+      transform: scale(0.985);
+    }
+
+    .wl-mascot-wrap {
+      display: inline-block;
+      width: 96px;
+      height: 96px;
+      animation: wl-groove 0.92s ease-in-out infinite alternate;
+      transform-origin: 50% 88%;
+    }
+    @keyframes wl-groove {
+      0% { transform: translateY(2px) rotate(-4deg) scale(1.02, 0.97); }
+      100% { transform: translateY(-6px) rotate(4deg) scale(0.98, 1.04); }
+    }
+    .wl-mascot-wrap.wl-jam-pop {
+      animation: wl-jam-jump 0.46s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    @keyframes wl-jam-jump {
+      0% { transform: scale(1.12, 0.86) translateY(4px); }
+      45% { transform: scale(0.94, 1.14) translateY(-16px) rotate(9deg); }
+      80% { transform: scale(1.04, 0.96) translateY(-3px) rotate(-5deg); }
+      100% { transform: scale(1, 1) translateY(0); }
+    }
+
+    .wl-eq {
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 5px;
+      height: 22px;
+      margin: 4px auto 6px;
+    }
+    .wl-eq span {
+      display: block;
+      width: 6px;
+      border-radius: 3px;
+      animation: wl-eq-bounce 0.68s ease-in-out infinite alternate;
+    }
+    .wl-eq span:nth-child(1) { background: #ffbe0b; height: 9px; animation-delay: 0.00s; }
+    .wl-eq span:nth-child(2) { background: #fb5607; height: 18px; animation-delay: -0.18s; }
+    .wl-eq span:nth-child(3) { background: #ff006e; height: 14px; animation-delay: -0.34s; }
+    .wl-eq span:nth-child(4) { background: #06d6a0; height: 21px; animation-delay: -0.09s; }
+    .wl-eq span:nth-child(5) { background: #8338ec; height: 13px; animation-delay: -0.26s; }
+    .wl-eq span:nth-child(6) { background: #3a86ff; height: 19px; animation-delay: -0.41s; }
+    .wl-eq span:nth-child(7) { background: #ffd166; height: 11px; animation-delay: -0.14s; }
+    @keyframes wl-eq-bounce {
+      0% { transform: scaleY(0.35); opacity: 0.72; }
+      100% { transform: scaleY(1.08); opacity: 1; }
+    }
+
+    .wl-tap-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      font-size: 11.5px;
+      color: #ffe6a7;
+    }
+
+    .wl-groove-pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(6, 214, 160, 0.18);
+      border: 1px solid rgba(6, 214, 160, 0.55);
+      color: #7bf1a8;
+      font-size: 11px;
+      font-weight: bold;
+    }
+
+    .wl-note-particle {
+      position: absolute;
+      pointer-events: none;
+      font-size: 18px;
+      animation: wl-rise 0.95s ease-out forwards;
+      z-index: 4;
+    }
+    @keyframes wl-rise {
+      0% { transform: translate(-50%, 0) scale(0.75); opacity: 1; }
+      100% { transform: translate(calc(-50% + var(--dx, 0px)), -68px) scale(1.25) rotate(12deg); opacity: 0; }
+    }
+
+    .wl-progress-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      margin: 8px 0 5px;
+      font-size: 12px;
+    }
+    #walnut-stage-text {
+      color: #f4e3c1;
+      text-align: left;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    #walnut-pct {
+      color: #ffd166;
+      font-weight: bold;
+      font-variant-numeric: tabular-nums;
+      flex-shrink: 0;
+    }
+
+    .wl-bar-track {
+      width: 100%;
+      height: 11px;
+      border-radius: 999px;
+      background: rgba(12, 9, 6, 0.82);
+      border: 1px solid rgba(212, 154, 90, 0.42);
+      overflow: hidden;
+      padding: 1px;
+      box-sizing: border-box;
+    }
+    #walnut-bar-fill {
+      width: 8%;
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #ff9f1c 0%, #ffd166 48%, #06d6a0 100%);
+      background-size: 200% 100%;
+      animation: wl-shimmer 1.8s linear infinite;
+      transition: width 0.22s ease-out;
+    }
+    @keyframes wl-shimmer {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 200% 50%; }
+    }
+
+    .wl-rumor-box {
+      margin-top: 10px;
+      padding: 8px 10px;
+      border-radius: 11px;
+      background: rgba(255, 243, 214, 0.055);
+      border: 1px dashed rgba(212, 154, 90, 0.35);
+      font-size: 11.5px;
+      line-height: 1.38;
+      color: #e9d8b8;
+      min-height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.22s ease;
+    }
+
+    @media (max-height: 460px) {
+      .wl-card { padding: 10px 14px; }
+      .wl-mascot-wrap { width: 64px; height: 64px; }
+      .wl-subtitle { margin-bottom: 5px; }
+      .wl-rumor-box { margin-top: 6px; padding: 5px 8px; min-height: 22px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="walnut-loader" role="status" aria-live="polite">
+    <div class="wl-beam wl-beam-left"></div>
+    <div class="wl-beam wl-beam-right"></div>
+    <div class="wl-firefly wl-f1"></div>
+    <div class="wl-firefly wl-f2"></div>
+    <div class="wl-firefly wl-f3"></div>
+    <div class="wl-firefly wl-f4"></div>
+
+    <div class="wl-card">
+      <div class="wl-pass-ribbon">✌️ August 1969 · Free Orchard Gate Pass</div>
+      <h1 class="wl-title">WALNUTSTOCK</h1>
+      <p class="wl-subtitle">Three Days of Peace, Shells &amp; Music</p>
+
+      <div class="wl-stage-box" id="walnut-jam-pad" role="button" tabindex="0" aria-label="Tap the hippie walnut to soundcheck">
+        <div class="wl-mascot-wrap" id="walnut-mascot">
+          <svg viewBox="0 0 120 120" width="100%" height="100%" aria-hidden="true">
+            <!-- Ground stage shadow -->
+            <ellipse cx="60" cy="111" rx="28" ry="6" fill="rgba(0,0,0,0.42)"/>
+            <!-- Little festival boots -->
+            <rect x="43" y="96" width="11" height="12" rx="5" fill="#5c3419"/>
+            <rect x="66" y="96" width="11" height="12" rx="5" fill="#5c3419"/>
+            <!--Grooving arms waving peace -->
+            <path d="M29 66 Q14 54 19 41" fill="none" stroke="#8d582c" stroke-width="6" stroke-linecap="round"/>
+            <path d="M91 66 Q106 52 101 39" fill="none" stroke="#8d582c" stroke-width="6" stroke-linecap="round"/>
+            <!-- Textured 1969 Walnut Shell Body -->
+            <ellipse cx="60" cy="62" rx="34" ry="38" fill="#b5763c" stroke="#5a3414" stroke-width="3.5"/>
+            <ellipse cx="60" cy="62" rx="27" ry="32" fill="#c98a4b" opacity="0.72"/>
+            <!-- Walnut shell center seam & ridges -->
+            <path d="M60 25 C56 46, 64 76, 60 99" fill="none" stroke="#6e4119" stroke-width="2.4" stroke-dasharray="5 4"/>
+            <path d="M37 48 Q46 54 39 66" fill="none" stroke="#7c4a1e" stroke-width="2" stroke-linecap="round" opacity="0.65"/>
+            <path d="M83 48 Q74 54 81 66" fill="none" stroke="#7c4a1e" stroke-width="2" stroke-linecap="round" opacity="0.65"/>
+            <!-- Tie-dye headband + Woodstock daisies -->
+            <path d="M28 43 Q60 33 92 43" fill="none" stroke="#ff006e" stroke-width="7" stroke-linecap="round"/>
+            <path d="M30 43 Q60 33 90 43" fill="none" stroke="#ffbe0b" stroke-width="3" stroke-dasharray="7 6" stroke-linecap="round"/>
+            <circle cx="38" cy="40" r="5.5" fill="#fffdf7"/>
+            <circle cx="38" cy="40" r="2.3" fill="#ffbe0b"/>
+            <circle cx="82" cy="40" r="5.5" fill="#fffdf7"/>
+            <circle cx="82" cy="40" r="2.3" fill="#ffbe0b"/>
+            <!-- Rose-tinted round Lennon specs -->
+            <circle cx="47" cy="57" r="9.5" fill="rgba(255, 0, 110, 0.42)" stroke="#ffd166" stroke-width="2.6"/>
+            <circle cx="73" cy="57" r="9.5" fill="rgba(255, 0, 110, 0.42)" stroke="#ffd166" stroke-width="2.6"/>
+            <line x1="56.5" y1="57" x2="63.5" y2="57" stroke="#ffd166" stroke-width="2.4"/>
+            <circle cx="44" cy="54" r="2.2" fill="rgba(255,255,255,0.65)"/>
+            <circle cx="70" cy="54" r="2.2" fill="rgba(255,255,255,0.65)"/>
+            <!-- Happy singing smile -->
+            <path d="M49 72 Q60 82 71 72" fill="none" stroke="#3d210b" stroke-width="3.2" stroke-linecap="round"/>
+            <!-- Peace medallion necklace -->
+            <path d="M44 83 Q60 93 76 83" fill="none" stroke="#ffd166" stroke-width="1.8"/>
+            <circle cx="60" cy="91" r="6.5" fill="#23160c" stroke="#06d6a0" stroke-width="2"/>
+            <line x1="60" y1="85" x2="60" y2="97" stroke="#06d6a0" stroke-width="1.8"/>
+            <line x1="60" y1="91" x2="55.5" y2="95.5" stroke="#06d6a0" stroke-width="1.8"/>
+            <line x1="60" y1="91" x2="64.5" y2="95.5" stroke="#06d6a0" stroke-width="1.8"/>
+          </svg>
+        </div>
+
+        <div class="wl-eq" aria-hidden="true">
+          <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+        </div>
+
+        <div class="wl-tap-row">
+          <span id="walnut-jam-label">🥁 Tap the Walnut to Soundcheck!</span>
+          <span class="wl-groove-pill" id="walnut-groove-badge" style="display:none">Groove 1x</span>
+        </div>
+      </div>
+
+      <div class="wl-progress-header">
+        <span id="walnut-stage-text">Warming up 1969 Orchard Stage Rig…</span>
+        <span id="walnut-pct">8%</span>
+      </div>
+      <div class="wl-bar-track">
+        <div id="walnut-bar-fill"></div>
+      </div>
+
+      <div class="wl-rumor-box" id="walnut-tip">
+        🌻 Stage Rumor: 5 live stages &amp; 30 original sets run simultaneously from dawn to midnight!
+      </div>
+    </div>
+  </div>
+
+  <!-- Track WebAudio contexts so user gestures always resume suspended audio & boot SoLoud WASM first -->
+  <script>
+    (function () {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker
+          .getRegistrations()
+          .then(function (regs) {
+            for (var r = 0; r < regs.length; r++) regs[r].unregister();
+          })
+          .catch(function () {});
+      }
+
+      // Interactive 1969 Festival Boot Loader state & progress controller
+      var currentPct = 8;
+      var targetCeiling = 26;
+      var dismissed = false;
+      var grooveCount = 0;
+      var stageEl = document.getElementById('walnut-stage-text');
+      var pctEl = document.getElementById('walnut-pct');
+      var fillEl = document.getElementById('walnut-bar-fill');
+      var tipEl = document.getElementById('walnut-tip');
+      var padEl = document.getElementById('walnut-jam-pad');
+      var mascotEl = document.getElementById('walnut-mascot');
+      var jamLabelEl = document.getElementById('walnut-jam-label');
+      var grooveBadgeEl = document.getElementById('walnut-groove-badge');
+
+      var rumors = [
+        '🌻 Stage Rumor: 5 live stages & 30 original sets run simultaneously from dawn to midnight!',
+        '🎸 Pro Tip: Walk closer to any stage to hear live spatial stereo amps swell in real time.',
+        '🌧️ Weather Report: Afternoon rain on Day 1 turns the South Hill into a playful Mud Slide!',
+        '🫐 Orchard Secret: Visit Creekside on Day 2 afternoon for Electric Purple Blueberries.',
+        '🔦 Nightfall Tip: Collect 9 hidden 3D-printed totems glowing beneath the lantern canopy.',
+        '💿 Backstage Pass: Spin any set on demand at the Vinyl Listening Booth & Pinball Tent!'
+      ];
+      var shoutouts = [
+        'Far out! Amps humming warm!',
+        'Groovy! Bass bins locked in!',
+        'Right on! Lanterns sparkling!',
+        'Cosmic! Crowd swaying together!',
+        'Outta sight! Shells vibrating!'
+      ];
+      var emojis = ['🎵', '✌️', '🌻', '🎸', '✨', '🌰', '🎶'];
+      var rumorIdx = 0;
+
+      function renderProgress() {
+        var rounded = Math.max(1, Math.min(100, Math.round(currentPct)));
+        if (pctEl) pctEl.textContent = rounded + '%';
+        if (fillEl) fillEl.style.width = rounded + '%';
+      }
+
+      window.__walnutSetBootStage = function (fraction, message) {
+        if (dismissed) return;
+        var incoming = Math.max(0, Math.min(0.96, Number(fraction) || 0)) * 100;
+        if (incoming > currentPct) {
+          currentPct = incoming;
+        }
+        targetCeiling = Math.min(94, Math.max(targetCeiling, incoming + 22));
+        if (message && stageEl) {
+          stageEl.textContent = message;
+        }
+        renderProgress();
+      };
+
+      var creepTimer = setInterval(function () {
+        if (dismissed) return;
+        if (currentPct < targetCeiling) {
+          var step = (targetCeiling - currentPct) * 0.075 + 0.28;
+          currentPct = Math.min(targetCeiling, currentPct + step);
+          renderProgress();
+        } else if (currentPct < 94) {
+          currentPct = Math.min(94, currentPct + 0.14);
+          renderProgress();
+        }
+      }, 120);
+
+      var rumorTimer = setInterval(function () {
+        if (dismissed || !tipEl) return;
+        rumorIdx = (rumorIdx + 1) % rumors.length;
+        tipEl.style.opacity = '0.25';
+        setTimeout(function () {
+          if (tipEl && !dismissed) {
+            tipEl.textContent = rumors[rumorIdx];
+            tipEl.style.opacity = '1';
+          }
+        }, 180);
+      }, 2800);
+
+      function triggerSoundcheck(ev) {
+        if (dismissed || !padEl) return;
+        grooveCount += 1;
+        if (mascotEl) {
+          mascotEl.classList.remove('wl-jam-pop');
+          void mascotEl.offsetWidth;
+          mascotEl.classList.add('wl-jam-pop');
+        }
+        if (grooveBadgeEl) {
+          grooveBadgeEl.style.display = 'inline-block';
+          grooveBadgeEl.textContent = 'Groove ' + grooveCount + 'x';
+        }
+        if (jamLabelEl) {
+          jamLabelEl.textContent = '🎶 ' + shoutouts[(grooveCount - 1) % shoutouts.length];
+        }
+        var rect = padEl.getBoundingClientRect();
+        var x = ev && ev.clientX ? ev.clientX - rect.left : rect.width * 0.5;
+        var y = ev && ev.clientY ? ev.clientY - rect.top : rect.height * 0.45;
+        for (var p = 0; p < 3; p++) {
+          var note = document.createElement('span');
+          note.className = 'wl-note-particle';
+          note.textContent = emojis[(grooveCount + p) % emojis.length];
+          note.style.left = Math.max(20, Math.min(rect.width - 20, x + (p - 1) * 18)) + 'px';
+          note.style.top = Math.max(24, Math.min(rect.height - 12, y)) + 'px';
+          note.style.setProperty('--dx', ((Math.random() - 0.5) * 54).toFixed(1) + 'px');
+          padEl.appendChild(note);
+          (function (el) {
+            setTimeout(function () {
+              if (el.parentNode) el.parentNode.removeChild(el);
+            }, 980);
+          })(note);
+        }
+      }
+
+      if (padEl) {
+        padEl.addEventListener('pointerdown', triggerSoundcheck);
+        padEl.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            triggerSoundcheck(null);
+          }
+        });
+      }
+
+      var trackedContexts = [];
+      window.__walnutAudioContexts = trackedContexts;
+      var NativeAC = window.AudioContext || window.webkitAudioContext;
+      if (NativeAC && !NativeAC.__walnutWrapped) {
+        var WrappedAC = function () {
+          var ctx = new (Function.prototype.bind.apply(
+            NativeAC,
+            [null].concat(Array.prototype.slice.call(arguments))
+          ))();
+          trackedContexts.push(ctx);
+          return ctx;
+        };
+        WrappedAC.prototype = NativeAC.prototype;
+        Object.setPrototypeOf(WrappedAC, NativeAC);
+        WrappedAC.__walnutWrapped = true;
+        if (window.AudioContext) window.AudioContext = WrappedAC;
+        if (window.webkitAudioContext) window.webkitAudioContext = WrappedAC;
+      }
+
+      window.walnutResumeAudioContexts = function () {
+        if (navigator.audioSession && navigator.audioSession.type !== 'playback') {
+          try {
+            navigator.audioSession.type = 'playback';
+          } catch (_) {}
+        }
+        for (var i = 0; i < trackedContexts.length; i++) {
+          var c = trackedContexts[i];
+          if (c && (c.state === 'suspended' || c.state === 'interrupted')) {
+            try {
+              var p = c.resume();
+              if (p && typeof p.catch === 'function') p.catch(function () {});
+            } catch (_) {}
+          }
+        }
+        var ma = window.miniaudio;
+        if (ma && Array.isArray(ma.devices)) {
+          for (var d = 0; d < ma.devices.length; d++) {
+            var dev = ma.devices[d];
+            if (
+              dev &&
+              dev.webaudio &&
+              (dev.webaudio.state === 'suspended' ||
+                dev.webaudio.state === 'interrupted')
+            ) {
+              try {
+                var rp = dev.webaudio.resume();
+                if (rp && typeof rp.catch === 'function')
+                  rp.catch(function () {});
+              } catch (_) {}
+            }
+          }
+        }
+      };
+
+      window.walnutIsSoloudWasmReady = function () {
+        var m = window.Module_soloud;
+        return Boolean(m && typeof m === 'object' && typeof m._isInited === 'function');
+      };
+
+      var events = [
+        'pointerdown',
+        'pointerup',
+        'mouseup',
+        'touchend',
+        'click',
+        'keydown',
+      ];
+      for (var e = 0; e < events.length; e++) {
+        window.addEventListener(events[e], window.walnutResumeAudioContexts, {
+          capture: true,
+          passive: true,
+        });
+      }
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') {
+          window.walnutResumeAudioContexts();
+        }
+      });
+
+      function dismissLoader() {
+        if (dismissed) return;
+        dismissed = true;
+        clearInterval(creepTimer);
+        clearInterval(rumorTimer);
+        currentPct = 100;
+        renderProgress();
+        if (stageEl) {
+          stageEl.textContent = 'Gates Open — Peace, Shells & Music! ✌️';
+        }
+        var el = document.getElementById('walnut-loader');
+        if (!el) return;
+        setTimeout(function () {
+          el.style.opacity = '0';
+          el.style.transform = 'scale(1.02)';
+          el.style.pointerEvents = 'none';
+          setTimeout(function () {
+            if (el.parentNode) el.parentNode.removeChild(el);
+          }, 400);
+        }, 120);
+      }
+
+      window.addEventListener('flutter-first-frame', dismissLoader, { once: true });
+    })();
+  </script>
+  <script src="assets/packages/flutter_soloud/web/libflutter_soloud_plugin.js"></script>
+  <script src="assets/packages/flutter_soloud/web/init_module.dart.js"></script>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

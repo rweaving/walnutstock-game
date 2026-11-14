@@ -1,0 +1,35 @@
+{
+    "name": "Walnutstock: Three Days of Peace, Shells & Music",
+    "short_name": "Walnutstock",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#1c140d",
+    "theme_color": "#1c140d",
+    "description": "3-Day 1969 Orchard Music Festival Exploration RPG with Spatial Multi-Stage Audio.",
+    "orientation": "any",
+    "prefer_related_applications": false,
+    "icons": [
+        {
+            "src": "icons/Icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-maskable-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "icons/Icon-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}

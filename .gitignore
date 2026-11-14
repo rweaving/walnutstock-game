@@ -1,0 +1,10 @@
+# Flutter / Dart build artifacts
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+coverage/
+.firebase/
+*.iml
+.DS_Store

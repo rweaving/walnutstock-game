@@ -1,0 +1,705 @@
+{
+  "albumTitle": "Walnutstock (Live)",
+  "albumArtist": "Literally Infinite",
+  "clockMinutesPerRealSecond": 0.55,
+  "stages": {
+    "main_roots_stage": {
+      "name": "Main Roots Stage",
+      "zone": "Main Roots Stage & High-Branch Booth",
+      "x": 608,
+      "y": 368,
+      "minDist": 96,
+      "maxDist": 1450
+    },
+    "velvet_canopy_stage": {
+      "name": "The Velvet Canopy Stage",
+      "zone": "The Velvet Canopy Stage",
+      "x": 224,
+      "y": 400,
+      "minDist": 96,
+      "maxDist": 1440
+    },
+    "mellow_meadow_stage": {
+      "name": "Willow Creek & Meadow Stage",
+      "zone": "The Mellow Meadow & The Old Oak",
+      "x": 1152,
+      "y": 448,
+      "minDist": 96,
+      "maxDist": 1460
+    },
+    "andromeda_pavilion_stage": {
+      "name": "Andromeda Geodesic Dome",
+      "zone": "The Andromeda Pavilion",
+      "x": 1760,
+      "y": 352,
+      "minDist": 96,
+      "maxDist": 1820
+    },
+    "urbano_canopy_stage": {
+      "name": "Urbano Produce-Truck Stage",
+      "zone": "The Urbano Canopy",
+      "x": 240,
+      "y": 1024,
+      "minDist": 96,
+      "maxDist": 1360
+    },
+    "sorting_arcade_stage": {
+      "name": "Sorting Machine Arcade Soundboard",
+      "zone": "The Sorting Machine Arcade Tent",
+      "x": 1744,
+      "y": 1024,
+      "minDist": 84,
+      "maxDist": 1480
+    },
+    "undergrowth_bells": {
+      "name": "Tea-Light Sanctuary Bell Chimes",
+      "zone": "The Undergrowth & Tea-Light Circle",
+      "x": 1200,
+      "y": 144,
+      "minDist": 48,
+      "maxDist": 480
+    },
+    "campground_turntable": {
+      "name": "Shady Bottoms Double-LP Turntable",
+      "zone": "Shady Bottoms Campground & Vendor Row",
+      "x": 1072,
+      "y": 960,
+      "minDist": 80,
+      "maxDist": 720
+    },
+    "pa_global_horn": {
+      "name": "High-Branch PA Horn System",
+      "zone": "Orchard-Wide Broadcast",
+      "x": 768,
+      "y": 336,
+      "minDist": 9999,
+      "maxDist": 9999
+    }
+  },
+  "tracks": [
+    {
+      "trackNumber": 1,
+      "id": "track_01",
+      "title": "With a Little Help from My Shell (Live)",
+      "artist": "Nutcracker Joe & The Hull Band",
+      "day": 1,
+      "startMinute": 480,
+      "endMinute": 611.99,
+      "durationSeconds": 239.99,
+      "stageId": "main_roots_stage",
+      "assetPath": "assets/audio/tracks/track_01.ogg",
+      "bundledInCore": true,
+      "isPaBroadcast": false,
+      "isBonusStem": false,
+      "worldEvent": null,
+      "reactiveCues": [
+        "bass_pulse"
+      ],
+      "subtitle": null
+    },
+    {
+      "trackNumber": 2,
+      "id": "track_02",
+      "title": "Stage Announcement 1",
+      "artist": "The Festival MC",
+      "day": 1,
+      "startMinute": 613.99,
+      "endMinute": 645.55,
+      "durationSeconds": 57.39,
+      "stageId": "pa_global_horn",
+      "assetPath": "assets/audio/tracks/track_02.ogg",
+      "bundledInCore": true,
+      "isPaBroadcast": true,
+      "isBonusStem": false,
+      "worldEvent": "drop_front_gate_fences",
+      "reactiveCues": [
+        "pa_horn"
+      ],
+      "subtitle": "Easy at the gate, beautiful shells! From this moment on, the fences are coming down—it's a FREE ORCHARD!"
+    },
+    {
+      "trackNumber": 3,
+      "id": "track_03",
+      "title": "Crackin' Free (Live)",
+      "artist": "Richie Shellens",
+      "day": 1,
+      "startMinute": 647.55,
+      "endMinute": 705.23,
+      "durationSeconds": 104.88,
+      "stageId": "main_roots_stage",
+      "assetPath": "assets/audio/tracks/track_03.ogg",
+      "bundledInCore": true,
+      "isPaBroadcast": false,
+      "isBonusStem": false,
+      "worldEvent": null,
+      "reactiveCues": [
+        "bass_pulse",
+        "guitar_riff"
+      ],
+      "subtitle": null
+    },
+    {
+      "trackNumber": 4,
+      "id": "track_04",
+      "title": "Getting Harder (Live)",
+      "artist": "The Walnut Blues Band",
+      "day": 1,
+      "startMinute": 710.23,
+      "endMinute": 831.32,
+      "durationSeconds": 220.16,
+      "stageId": "main_roots_stage",
+      "assetPath": "assets/audio/tracks/track_04.ogg",
+      "bundledInCore": true,
+      "isPaBroadcast": false,
+      "isBonusStem": false,
+      "worldEvent": null,
+      "reactiveCues": [
+        "bass_pulse",
+        "organ_440"
+      ],
+      "subtitle": null
+    },
+    {
+      "trackNumber": 5,
+      "id": "track_05",
+      "title": "Brand New Key (And I Found It Under a Walnut Tree) [Live]",
+      "artist": "Melanie Sapka",
+      "day": 1,
+      "startMinute": 839.32,
+      "endMinute": 960.42,
+      "durationSeconds": 220.19,
+      "stageId": "mellow_meadow_stage",
+      "assetPath": "assets/audio/tracks/track_05.ogg",
+      "bundledInCore": false,
+      "isPaBroadcast": false,
+      "isBonusStem": false,
+      "worldEvent": "unlock_meadow_scavenger",
+      "reactiveCues": [
+        "g_major_chord",
+        "slow_sway"
+      ],
+      "subtitle": null
+    },
+    {
+      "trackNumber": 6,
+      "id": "track_06",
+      "title": "Open Shells, Open Hearts (Live)",
+      "artist": "Arlo Nutthrie",
+      "day": 1,
+      "startMinute": 968.42,
+      "endMinute": 1129.61,
+      "durationSeconds": 293.07,
+      "stageId": "main_roots_stage",
+      "assetPath": "assets/audio/tracks/track_06.ogg",
+      "bundledInCore": false,
+      "isPaBroadcast": false,
+      "isBonusStem": false,
+      "worldEvent": "unlock_falafel_truce",
+      "reactiveCues": [
+        "slow_sway",
+        "organ_440"
+      ],
+      "subtitle": null
+    },
+    {
+      "trackNumber": 7,
+      "id": "track_07",
+      "title": "Stage Announcement 2",
+      "artist": "The Festival MC",
+      "day": 1,
+      "startMinute": 1139.61,
+      "endMinute": 1168.64,
+      "durationSeconds": 52.79,
+      "stageId": "pa_global_horn",
+      "assetPath": "assets/audio/tracks/track_07.ogg",
+      "bundledInCore": false,
+      "isPaBroadcast": true,
+      "isBonusStem": false,
+      "worldEvent": "light_evening_lanterns",
+      "reactiveCues": [
+        "pa_horn"
+      ],
+      "subtitle": "Golden hour's settling over Max Yasgur-Shell's grove! Light a lantern for your neighbor and share your cider!"
+    },
+    {
+      "trackNumber": 8,
+      "id": "track_08",
+      "title": "Walnut Smooth (Live)",
+      "artist": "Nutana",
+      "day": 1,
+      "startMinute": 1171.64,
+      "endMinute": 1305.44,
+      "durationSeconds": 243.28,
+      "stageId": "velvet_canopy_stage",
+      "assetPath": "assets/audio/tracks/track_08.ogg",
+      "bundledInCore": false,
+      "isPaBroadcast": false,
+      "isBonusStem": false,
+      "worldEvent": null,
+      "reactiveCues": [
+        "bass_pulse",
+        "organ_440"
+      ],
+      "subtitle": null
+    },
+    {
+      "trackNumber": 9,
+      "id": "track_09",
+      "title": "Kernel of Truth (Live)",
+      "artist": "Canned Walnut",
+      "day": 1,
+      "startMinute": 1313.44,
+      "endMinute": 1458.25,
+      "durationSeconds": 263.29,
+      "stageId": "main_roots_stage",
+      "assetPath": "assets/audio/tracks/track_09.ogg",
+      "bundledInCore": false,
+      "isPaBroadcast": false,
+      "isBonusStem": false,
+      "worldEvent": null,
+      "reactiveCues": [
+        "bass_pulse",
+        "g_major_chord"
+      ],
+      "subtitle": null
+    },
+    {
+      "trackNumber": 10,
+      "id": "track_10",
+      "title": "I Think of Walnuts (Live)",
+      "artist": "Mountain Grove",
+      "day": 1,
+      "startMinute": 1466.25,
+      "endMinute": 1644.13,
+      "durationSeconds": 323.42,
+      "stageId": "main_roots_stage",
+      "assetPath": "assets/audio/tracks/track_10.ogg",
+      "bundledInCore": false,
+      "isPaBroadcast": false,
+      "isBonusStem": false,
+      "worldEvent": "emerge_fireflies",
+      "reactiveCues": [
+        "bass_pulse",
+        "slow_sway",
+        "organ_440"
+      ],
+      "subtitle": null
+    },
+    {
+      "trackNumber": 0,
+      "id": "track_00",
+      "title": "Opening of the Shell (5AM Willow Lute Prelude)",
+      "artist": "Barnaby Breeze-Walker",
+      "day": 2,
+      "startMinute": 300,
+      "endMinute": 415.5,
+      "durationSeconds": 210,
+      "stageId": "mellow_meadow_stage",
+      "assetPath": "assets/audio/sfx/sfx_lute_gmajor.wav",
+      "bundledInCore": true,
+      "isPaBroadcast": false,
+      "isBonusStem": false,
+      "worldEvent": "open_morning_dew_window",
+      "reactiveCues": [
+        "g_major_chord"
+      ],
+      "subtitle": null
+    },
+    {
+      "trackNumber": 11,
+      "id": "track_11",
+      "title": "Stage Announcement 3",
+      "artist": "The Festival MC",
+      "day": 2,
+      "startMinute": 660,
+      "endMinute": 706.95,
+      "durationSeconds": 85.37,
+      "stageId": "pa_global_horn",
+      "assetPath": "assets/audio/tracks/track_11.ogg",
+      "bundledInCore": false,
+      "isPaBroadcast": true,
+      "isBonusStem": false,
+      "worldEvent": "bittershell_storm_warning",
+      "reactiveCues": [
+        "pa_horn"
+      ],
+      "subtitle": "Good Saturday afternoon, Free Orchard! Keep an eye on those western clouds—and give a mighty roar for Janice Joeplant at the Velvet Canopy!"
+    },
+    {
+      "trackNumber": 12,
+      "id": "track_12",
+      "title": "Piece of My Walnut (Live)",
+      "artist": "Janice Joeplant",
+      "day": 2,
+      "startMinute": 708.95,
+      "endMinute": 845.7,
+      "durationSeconds": 248.63,
+      "stageId": "velvet_canopy_stage",
+      "assetPath": "assets/audio/tracks/track_12.ogg",
+      "bundledInCore": false,
+      "isPaBroadcast": false,
+      "isBonusStem": false,
+      "worldEvent": "bloom_moss_bridges",
+      "reactiveCues": [
+        "vocal_peak",
+        "organ_440"
+      ],
+      "subtitle": null
+    },
+    {
+      "trackNumber": 13,
+      "id": "track_13",
+      "title": "Our Shell (Live)",
+      "artist": "Crosby, Stills, Nash & Walnut",
+      "day": 2,
+      "startMinute": 853.7,
+      "endMinute": 927.88,
+      "durationSeconds": 134.87,
+      "stageId": "main_roots_stage",
+      "assetPath": "assets/audio/tracks/track_13.ogg",
+      "bundledInCore": false,
+      "isPaBroadcast": false,
+      "isBonusStem": false,
+      "worldEvent": null,
+      "reactiveCues": [
+        "g_major_chord",
+        "slow_sway"
+      ],
+      "subtitle": null
+    },
+    {
+      "trackNumber": 14,
+      "id": "track_14",
+      "title": "Fortunate Son (of a Bareroot Sapling) [Live]",
+      "artist": "Creedence Clearwater Harvest",
+      "day": 2,
+      "startMinute": 935.88,
+      "endMinute": 1069.43,
+      "durationSeconds": 242.81,
+      "stageId": "main_roots_stage",
+      "assetPath": "assets/audio/tracks/track_14.ogg",
+      "bundledInCore": false,
+      "isPaBroadcast": false,
+      "isBonusStem": false,
+      "worldEvent": null,
+      "reactiveCues": [
+        "bass_pulse",
+        "guitar_riff"
+      ],
+      "subtitle": null
+    },
+    {
+      "trackNumber": 15,
+      "id": "track_15",
+      "title": "Bad Moon Risin' (Watch Out for Blight) [Live]",
+      "artist": "Creedence Clearwater Harvest",
+      "day": 2,
+      "startMinute": 1079.43,
+      "endMinute": 1186.68,
+      "durationSeconds": 195,
+      "stageId": "main_roots_stage",
+      "assetPath": "assets/audio/tracks/track_15.ogg",
+      "bundledInCore": false,
+      "isPaBroadcast": false,
+      "isBonusStem": false,
+      "worldEvent": "trigger_saturday_rainstorm",
+      "reactiveCues": [
+        "bass_pulse",
+        "storm_thunder"
+      ],
+      "subtitle": null
+    },
+    {
+      "trackNumber": 16,
+      "id": "track_16",
+      "title": "Talkin' 'Bout My Dehiscence (Live)",
+      "artist": "The Hull",
+      "day": 2,
+      "startMinute": 1194.68,
+      "endMinute": 1271.66,
+      "durationSeconds": 139.96,
+      "stageId": "main_roots_stage",
+      "assetPath": "assets/audio/tracks/track_16.ogg",
+      "bundledInCore": false,
+      "isPaBroadcast": false,
+      "isBonusStem": false,
+      "worldEvent": null,
+      "reactiveCues": [
+        "bass_pulse",
+        "guitar_riff"
+      ],
+      "subtitle": null
+    },
+    {
+      "trackNumber": 17,
+      "id": "track_17",
+      "title": "Pinball Wizard (at the Sorting Machine) [Live]",
+      "artist": "The Hull",
+      "day": 2,
+      "startMinute": 1281.66,
+      "endMinute": 1432.89,
+      "durationSeconds": 274.96,
+      "stageId": "sorting_arcade_stage",
+      "assetPath": "assets/audio/tracks/track_17.ogg",
+      "bundledInCore": false,
+      "isPaBroadcast": false,
+      "isBonusStem": false,
+      "worldEvent": "open_sorting_tournament",
+      "reactiveCues": [
+        "g_major_chord",
+        "organ_440"
+      ],
+      "subtitle": null
+    },
+    {
+      "trackNumber": 27,
+      "id": "track_27_dembow",
+      "title": "Shaking of the Branches (Santurce Dem-Bow Live)",
+      "artist": "Hector \"El Duro\" Husk (Don Shell-O)",
+      "day": 2,
+      "startMinute": 1440,
+      "endMinute": 1492.8,
+      "durationSeconds": 96,
+      "stageId": "urbano_canopy_stage",
+      "assetPath": "assets/audio/tracks/track_27_dembow.ogg",
+      "bundledInCore": false,
+      "isPaBroadcast": false,
+      "isBonusStem": true,
+      "worldEvent": "activate_urbano_dembow",
+      "reactiveCues": [
+        "bass_pulse"
+      ],
+      "subtitle": null
+    },
+    {
+      "trackNumber": 28,
+      "id": "track_28_drupe",
+      "title": "The Drupe Dimension Drift (Astral Dome Cut)",
+      "artist": "Cosmo Shell-voy",
+      "day": 2,
+      "startMinute": 1440,
+      "endMinute": 1497.2,
+      "durationSeconds": 104,
+      "stageId": "andromeda_pavilion_stage",
+      "assetPath": "assets/audio/tracks/track_28_drupe.ogg",
+      "bundledInCore": false,
+      "isPaBroadcast": false,
+      "isBonusStem": true,
+      "worldEvent": "activate_andromeda_nebula",
+      "reactiveCues": [
+        "bass_pulse",
+        "psychedelic_swell"
+      ],
+      "subtitle": null
+    },
+    {
+      "trackNumber": 29,
+      "id": "track_29_omega",
+      "title": "Omega Grove — Shelltrip Caravan",
+      "artist": "Cosmo Shell-voy",
+      "day": 2,
+      "startMinute": 1502,
+      "endMinute": 1559.2,
+      "durationSeconds": 104,
+      "stageId": "andromeda_pavilion_stage",
+      "assetPath": "assets/audio/tracks/track_29_omega.ogg",
+      "bundledInCore": false,
+      "isPaBroadcast": false,
+      "isBonusStem": true,
+      "worldEvent": "activate_andromeda_nebula",
+      "reactiveCues": [
+        "bass_pulse",
+        "slow_sway"
+      ],
+      "subtitle": null
+    },
+    {
+      "trackNumber": 18,
+      "id": "track_18",
+      "title": "Stage Announcement 4",
+      "artist": "The Festival MC",
+      "day": 3,
+      "startMinute": 480,
+      "endMinute": 512.97,
+      "durationSeconds": 59.95,
+      "stageId": "pa_global_horn",
+      "assetPath": "assets/audio/tracks/track_18.ogg",
+      "bundledInCore": false,
+      "isPaBroadcast": true,
+      "isBonusStem": false,
+      "worldEvent": "clear_storm_mist",
+      "reactiveCues": [
+        "pa_horn"
+      ],
+      "subtitle": "Morning, muddy shells! Look up—the sun is breaking right through the walnut canopy!"
+    },
+    {
+      "trackNumber": 19,
+      "id": "track_19",
+      "title": "California Dreamin' (of Perfect Cracking Weather) [Live]",
+      "artist": "The Walnuts & The Shells",
+      "day": 3,
+      "startMinute": 515.97,
+      "endMinute": 671.25,
+      "durationSeconds": 282.33,
+      "stageId": "mellow_meadow_stage",
+      "assetPath": "assets/audio/tracks/track_19.ogg",
+      "bundledInCore": false,
+      "isPaBroadcast": false,
+      "isBonusStem": false,
+      "worldEvent": null,
+      "reactiveCues": [
+        "g_major_chord",
+        "slow_sway"
+      ],
+      "subtitle": null
+    },
+    {
+      "trackNumber": 20,
+      "id": "track_20",
+      "title": "Monday, Monday (The Sorting Belt Blues) [Live]",
+      "artist": "The Walnuts & The Shells",
+      "day": 3,
+      "startMinute": 677.25,
+      "endMinute": 821.17,
+      "durationSeconds": 261.67,
+      "stageId": "sorting_arcade_stage",
+      "assetPath": "assets/audio/tracks/track_20.ogg",
+      "bundledInCore": false,
+      "isPaBroadcast": false,
+      "isBonusStem": false,
+      "worldEvent": "open_sorting_belt_blues",
+      "reactiveCues": [
+        "slow_sway",
+        "organ_440"
+      ],
+      "subtitle": null
+    },
+    {
+      "trackNumber": 21,
+      "id": "track_21",
+      "title": "Walnut Cruncherman (Live)",
+      "artist": "Country Joe & The Nut",
+      "day": 3,
+      "startMinute": 827.17,
+      "endMinute": 961.59,
+      "durationSeconds": 244.4,
+      "stageId": "main_roots_stage",
+      "assetPath": "assets/audio/tracks/track_21.ogg",
+      "bundledInCore": false,
+      "isPaBroadcast": false,
+      "isBonusStem": false,
+      "worldEvent": null,
+      "reactiveCues": [
+        "bass_pulse",
+        "organ_440"
+      ],
+      "subtitle": null
+    },
+    {
+      "trackNumber": 22,
+      "id": "track_22",
+      "title": "The Walnut Trip (Live)",
+      "artist": "Jefferson Orchard",
+      "day": 3,
+      "startMinute": 967.59,
+      "endMinute": 1165.41,
+      "durationSeconds": 359.68,
+      "stageId": "main_roots_stage",
+      "assetPath": "assets/audio/tracks/track_22.ogg",
+      "bundledInCore": false,
+      "isPaBroadcast": false,
+      "isBonusStem": false,
+      "worldEvent": "activate_walnut_trip_shader",
+      "reactiveCues": [
+        "bass_pulse",
+        "psychedelic_swell"
+      ],
+      "subtitle": null
+    },
+    {
+      "trackNumber": 23,
+      "id": "track_23",
+      "title": "Help I'm a Walnut (Live)",
+      "artist": "The Grateful Nut",
+      "day": 3,
+      "startMinute": 1171.41,
+      "endMinute": 1291.33,
+      "durationSeconds": 218.04,
+      "stageId": "velvet_canopy_stage",
+      "assetPath": "assets/audio/tracks/track_23.ogg",
+      "bundledInCore": false,
+      "isPaBroadcast": false,
+      "isBonusStem": false,
+      "worldEvent": null,
+      "reactiveCues": [
+        "organ_440",
+        "guitar_riff"
+      ],
+      "subtitle": null
+    },
+    {
+      "trackNumber": 24,
+      "id": "track_24",
+      "title": "Stage Announcement 5 (Live)",
+      "artist": "The Festival MC",
+      "day": 3,
+      "startMinute": 1299.33,
+      "endMinute": 1327.32,
+      "durationSeconds": 50.89,
+      "stageId": "pa_global_horn",
+      "assetPath": "assets/audio/tracks/track_24.ogg",
+      "bundledInCore": false,
+      "isPaBroadcast": true,
+      "isBonusStem": false,
+      "worldEvent": "migrate_crowd_main_roots",
+      "reactiveCues": [
+        "pa_horn"
+      ],
+      "subtitle": "Three days of peace, shells, and music... put your branches together for JIMI HENDSHELL!"
+    },
+    {
+      "trackNumber": 25,
+      "id": "track_25",
+      "title": "Purple Haze (of Walnut Dust) [Live]",
+      "artist": "Jimi Hendshell",
+      "day": 3,
+      "startMinute": 1329.32,
+      "endMinute": 1557.53,
+      "durationSeconds": 414.93,
+      "stageId": "main_roots_stage",
+      "assetPath": "assets/audio/tracks/track_25.ogg",
+      "bundledInCore": false,
+      "isPaBroadcast": false,
+      "isBonusStem": false,
+      "worldEvent": "purple_walnut_dust",
+      "reactiveCues": [
+        "bass_pulse",
+        "guitar_riff"
+      ],
+      "subtitle": null
+    },
+    {
+      "trackNumber": 26,
+      "id": "track_26",
+      "title": "Foxy Nutlady (Live)",
+      "artist": "Jimi Hendshell",
+      "day": 3,
+      "startMinute": 1562.53,
+      "endMinute": 1695.26,
+      "durationSeconds": 241.32,
+      "stageId": "main_roots_stage",
+      "assetPath": "assets/audio/tracks/track_26.ogg",
+      "bundledInCore": false,
+      "isPaBroadcast": false,
+      "isBonusStem": false,
+      "worldEvent": "unlock_encore_mode",
+      "reactiveCues": [
+        "bass_pulse",
+        "guitar_riff",
+        "slow_sway"
+      ],
+      "subtitle": null
+    }
+  ]
+}

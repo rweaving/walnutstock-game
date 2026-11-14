@@ -1,0 +1,77 @@
+name: walnutstock
+description: "Walnutstock: Three Days of Peace, Shells & Music — 2D Top-Down Festival Exploration RPG"
+publish_to: 'none'
+version: 1.0.0+2
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flame: ^1.22.0
+  flame_tiled: ^3.1.2
+  flame_riverpod: ^5.4.0
+  flutter_riverpod: ^2.6.1
+  flutter_soloud: ^3.1.0
+  hive_ce: ^2.8.0
+  path_provider: ^2.1.5
+  equatable: ^2.0.7
+  http: ^1.2.2
+  xml: ^6.5.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flame_test: ^1.18.0
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/data/
+    - assets/tiles/
+    - assets/images/characters/
+    - assets/images/tiles/
+    - assets/images/props/
+    - assets/images/totems/
+    - assets/audio/sfx/
+    # Opus (.ogg) festival soundtrack declared so Flutter Web, static hosting, serve.mjs,
+    # and native builds all resolve every track cleanly (downloaded on-demand / progressively cached).
+    - assets/audio/tracks/track_01.ogg
+    - assets/audio/tracks/track_02.ogg
+    - assets/audio/tracks/track_03.ogg
+    - assets/audio/tracks/track_04.ogg
+    - assets/audio/tracks/track_05.ogg
+    - assets/audio/tracks/track_06.ogg
+    - assets/audio/tracks/track_07.ogg
+    - assets/audio/tracks/track_08.ogg
+    - assets/audio/tracks/track_09.ogg
+    - assets/audio/tracks/track_10.ogg
+    - assets/audio/tracks/track_11.ogg
+    - assets/audio/tracks/track_12.ogg
+    - assets/audio/tracks/track_13.ogg
+    - assets/audio/tracks/track_14.ogg
+    - assets/audio/tracks/track_15.ogg
+    - assets/audio/tracks/track_16.ogg
+    - assets/audio/tracks/track_17.ogg
+    - assets/audio/tracks/track_18.ogg
+    - assets/audio/tracks/track_19.ogg
+    - assets/audio/tracks/track_20.ogg
+    - assets/audio/tracks/track_21.ogg
+    - assets/audio/tracks/track_22.ogg
+    - assets/audio/tracks/track_23.ogg
+    - assets/audio/tracks/track_24.ogg
+    - assets/audio/tracks/track_25.ogg
+    - assets/audio/tracks/track_26.ogg
+    - assets/audio/tracks/track_27_dembow.ogg
+    - assets/audio/tracks/track_28_drupe.ogg
+    - assets/audio/tracks/track_29_omega.ogg
+
+  shaders:
+    - shaders/walnut_trip.frag
+    - shaders/purple_haze.frag
+    - shaders/nebula.frag
+    - shaders/rain_mist.frag
+    - shaders/electric_blueberry.frag
