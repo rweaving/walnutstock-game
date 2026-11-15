@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:ui' show Offset, Rect;
+import 'dart:ui' show Canvas, Offset, PictureRecorder, Rect;
 import 'package:flame/components.dart' show Vector2;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,8 +11,10 @@ import 'package:walnutstock/data/models.dart';
 import 'package:walnutstock/game/actors/catmull_rom_spline.dart';
 import 'package:walnutstock/game/walnutstock_game.dart';
 import 'package:walnutstock/game/world/astar_pathfinder.dart';
+import 'package:walnutstock/game/world/festival_grounds_scenery_component.dart';
 import 'package:walnutstock/game/world/tiled_map_parser.dart';
 import 'package:walnutstock/game/world/world_mutators.dart';
+import 'package:walnutstock/state/dialogue_and_overlay_state.dart';
 import 'package:walnutstock/state/journal_state.dart';
 import 'package:walnutstock/state/providers.dart';
 import 'package:walnutstock/state/save_repository.dart';
@@ -668,6 +670,171 @@ void main() {
       expect(
         container.read(worldFlagsProvider).beachBallMaxRally,
         greaterThanOrEqualTo(1),
+      );
+    });
+
+    test(
+        'Redesigned Festival Grounds: 84-tile 2.5D tileset, Willow Creek & 3 Cedar Footbridges, Crossroads Peace Mosaic, Campfire Hearth, and Catenary Garlands work end-to-end',
+        () async {
+      // 1. Verify expanded 84-tile .tsx properties (keyed by 0-based tile id)
+      expect(map.tileDefs.length, greaterThanOrEqualTo(84));
+      expect(map.tileDefs[53]?.surface, 'stone'); // id 53 sandstone cobbles
+      expect(map.tileDefs[56]?.surface, 'water'); // id 56 deep creek stream
+      expect(map.tileDefs[56]?.collidable, isTrue);
+      expect(map.tileDefs[59]?.surface, 'wood_stage'); // id 59 cedar bridge
+      expect(map.tileDefs[59]?.collidable, isFalse);
+      expect(map.tileDefs[69]?.canopy, isTrue); // id 69 weeping willow fronds
+      expect(map.tileDefs[70]?.canopy, isTrue); // id 70 walnut canopy L
+      expect(map.tileDefs[79]?.lantern, isTrue); // id 79 campfire hearth
+      expect(map.tileDefs[81]?.lantern, isTrue); // id 81 festoon post
+
+      // 2. Eastern Willow Creek blocks direct wading while all 3 Cedar Footbridges carry A* traffic
+      expect(map.surfaceAtWorld(1464, 728), 'water');
+      expect(map.isPointBlocked(1464, 728), isTrue);
+
+      for (final bridgePt in FestivalGroundsSceneryController.easternCreekBridges) {
+        expect(map.surfaceAtWorld(bridgePt.dx, bridgePt.dy), 'wood_stage');
+        expect(map.isPointBlocked(bridgePt.dx, bridgePt.dy), isFalse);
+      }
+
+      final pathfinder = AStarPathfinder(map);
+      final northBridgePath = pathfinder.findWorldPath(
+        startX: 1200,
+        startY: 624,
+        goalX: 1664,
+        goalY: 624,
+      );
+      expect(northBridgePath, isNotEmpty);
+      expect(
+        northBridgePath.any((pt) => (pt.$1 - 1476).abs() <= 32),
+        isTrue,
+        reason: 'North Boulevard A* path should cross the North Cedar Footbridge',
+      );
+
+      final southBridgePath = pathfinder.findWorldPath(
+        startX: 1296,
+        startY: 1104,
+        goalX: 1664,
+        goalY: 1104,
+      );
+      expect(southBridgePath, isNotEmpty);
+      expect(
+        southBridgePath.any((pt) => (pt.$1 - 1476).abs() <= 32),
+        isTrue,
+        reason: 'South Boulevard A* path should cross the South Cedar Footbridge',
+      );
+
+      // 3. Central Crossroads Peace Mosaic (608, 864) is stone and stays dry during Rainstorm Mud
+      expect(map.surfaceAtWorld(608, 864), 'stone');
+      final mutators = WorldMutators(map);
+      mutators.syncRainstormMud(true);
+      expect(map.surfaceAtWorld(608, 864), 'stone');
+      mutators.syncRainstormMud(false);
+
+      // 4. Mount WalnutstockGame and verify FestivalGroundsSceneryController, Crossroads Signpost & Lights
+      TestWidgetsFlutterBinding.ensureInitialized();
+      final container = ProviderContainer(
+        overrides: [
+          festivalDataProvider.overrideWithValue(bundle),
+          saveRepositoryProvider.overrideWithValue(SaveRepository()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final game = WalnutstockGame(
+        container: container,
+        data: bundle,
+        mapData: map,
+        audioService: SoloudAudioService(),
+      );
+      game.onGameResize(Vector2(1280, 720));
+      await game.onLoad();
+      game.update(0.05);
+
+      expect(game.groundsScenery, isNotNull);
+      expect(game.groundsScenery!.surfaceLayer.parent, same(game.world));
+      expect(game.groundsScenery!.propsLayer.parent, same(game.world));
+      expect(game.groundsScenery!.overheadLayer.parent, same(game.world));
+      expect(game.groundsScenery!.surfaceLayer.priority, -4450);
+      expect(game.groundsScenery!.propsLayer.priority, 1290);
+      expect(game.groundsScenery!.overheadLayer.priority, 6250);
+
+      // Walking up to the Central Crossroads Trail Signpost and interacting opens the Orchard Map tab
+      final signPos = FestivalGroundsSceneryController.crossroadsFingerpostPos;
+      game.teleportPlayer(signPos.dx, signPos.dy + 16);
+      game.update(0.05);
+      expect(
+        container.read(uiOverlayProvider).nearbyInteractPrompt,
+        contains('Crossroads Trail Signpost'),
+      );
+      game.handleInteract();
+      expect(container.read(uiOverlayProvider).pocketProgramOpen, isTrue);
+      expect(
+        container.read(uiOverlayProvider).pocketProgramTab,
+        PocketProgramTab.orchardMap,
+      );
+      container.read(uiOverlayProvider.notifier).closePocketProgram();
+
+      // Dusk/Night lightmap includes Campfire Hearth, Crossroads Mosaic, and FOH Tower pools
+      final nightTrack = bundle.setlist.tracks.firstWhere(
+        (t) => t.startMinute >= 1200,
+      );
+      container.read(festivalClockProvider.notifier).jumpToTrack(nightTrack);
+      game.update(0.05);
+
+      // Render across key redesigned landmarks to ensure zero canvas/shader exceptions
+      for (final (rx, ry) in const [
+        (608.0, 864.0), // Crossroads Peace Mosaic + Fingerpost + X-Garlands
+        (1080.0, 1048.0), // Shady Bottoms Campfire Hearth + Vendor Row Pergolas
+        (776.0, 568.0), // Main Roots FOH Sound & Liquid-Light Mixing Tower
+        (1476.0, 624.0), // Eastern Willow Creek & North Cedar Footbridge
+        (1760.0, 352.0), // Andromeda Pavilion Ley-Line Conduits
+      ]) {
+        game.teleportPlayer(rx, ry);
+        game.update(0.05);
+        final recorder = PictureRecorder();
+        final canvas = Canvas(recorder);
+        game.groundsScenery!.surfaceLayer.render(canvas);
+        game.groundsScenery!.propsLayer.render(canvas);
+        game.groundsScenery!.overheadLayer.render(canvas);
+        recorder.endRecording().dispose();
+      }
+
+      final allLights = game.collectVisibleWorldLights(
+        const Rect.fromLTWH(0, 0, 2048, 1536),
+      );
+      expect(
+        allLights.any(
+          (l) =>
+              (l.position -
+                      FestivalGroundsSceneryController.campgroundFireCenter)
+                  .distance <
+              2.0,
+        ),
+        isTrue,
+        reason: 'Shady Bottoms Campfire Hearth should emit warm LightSource3D',
+      );
+      expect(
+        allLights.any(
+          (l) =>
+              (l.position -
+                      FestivalGroundsSceneryController.crossroadsPlazaCenter)
+                  .distance <
+              2.0,
+        ),
+        isTrue,
+        reason: 'Central Crossroads Peace Mosaic should emit dusk LightSource3D',
+      );
+      expect(
+        allLights.any(
+          (l) =>
+              (l.position -
+                      FestivalGroundsSceneryController.mainRootsFohTowerCenter)
+                  .distance <
+              2.0,
+        ),
+        isTrue,
+        reason: 'Main Roots FOH Mixing Tower should emit liquid-light glow',
       );
     });
   });

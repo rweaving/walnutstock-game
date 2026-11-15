@@ -31,6 +31,7 @@ import 'world/concert_light_show.dart';
 import 'world/day_night_atmosphere.dart';
 import 'world/electric_blueberry_experience_component.dart';
 import 'world/festival_crowd_director.dart';
+import 'world/festival_grounds_scenery_component.dart';
 import 'world/festival_props_component.dart';
 import 'world/mud_experience_component.dart';
 import 'world/orchard_gate_component.dart';
@@ -92,6 +93,7 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
   ElectricBlueberryExperienceController? _blueberryExperience;
   FestivalPropsComponent? _festivalProps;
   FestivalCrowdDirector? _crowdDirector;
+  FestivalGroundsSceneryController? _groundsScenery;
   OrchardGatePropsComponent? _orchardGateProps;
   OrchardGateOverheadArchComponent? _orchardGateArch;
   PlayerWalnut? player;
@@ -122,6 +124,7 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
       _blueberryExperience;
   FestivalPropsComponent? get festivalProps => _festivalProps;
   FestivalCrowdDirector? get crowdDirector => _crowdDirector;
+  FestivalGroundsSceneryController? get groundsScenery => _groundsScenery;
   double get blueberryVisualBlend => _blueberryVisualBlend;
 
   NpcActor? npcActorById(String id) {
@@ -195,6 +198,15 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
     container
         .read(uiOverlayProvider.notifier)
         .openPocketProgram(PocketProgramTab.cultivarAndMix);
+  }
+
+  void openCrossroadsMapSign() {
+    unawaited(audioService.unlockAndInitialize());
+    player?.clearTapPath();
+    _pendingAutoInteractTarget = null;
+    container
+        .read(uiOverlayProvider.notifier)
+        .openPocketProgram(PocketProgramTab.orchardMap);
   }
 
   /// Computes an adaptive camera zoom so phones fill 100% of the screen (no
@@ -433,6 +445,15 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
       timeGetter: () => _shaderClock,
       onCelebrationBurst: (pos) => _festivalProps?.spawnCelebrationSparks(pos),
     );
+    _groundsScenery = FestivalGroundsSceneryController(
+      metricsGetter: () => _dayNightMetrics,
+      cameraCenterGetter: _cameraWorldCenter,
+      viewBoundsGetter: _cameraWorldBounds,
+      timeGetter: () => _shaderClock,
+      bassGetter: () => scheduleController.latest.fft.bass,
+      tunedResonatorsGetter: () =>
+          container.read(worldFlagsProvider).tunedResonators,
+    );
 
     if (_isRemoved) return;
     late final PlayerProfile profile;
@@ -490,6 +511,7 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
     );
 
     await world.add(_groundDecorLayer!);
+    await _groundsScenery!.mountIntoWorld(world);
     await world.add(
       StageDeckRiserComponent(
         liveStagesGetter: () => _performerDirector?.liveStages ?? const {},
@@ -717,6 +739,22 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
         openCultivarBooth();
         return;
       }
+    }
+    if ((tapOffset - FestivalGroundsSceneryController.crossroadsFingerpostPos)
+            .distance <=
+        32.0) {
+      if ((p.position - Vector2(
+                FestivalGroundsSceneryController.crossroadsFingerpostPos.dx,
+                FestivalGroundsSceneryController.crossroadsFingerpostPos.dy,
+              )).length <=
+          54.0) {
+        openCrossroadsMapSign();
+        return;
+      }
+      _walkToAndAutoInteract(
+        FestivalGroundsSceneryController.crossroadsFingerpostPos,
+      );
+      return;
     }
 
     // 2. Tapping right beside an already-in-range prompt target triggers immediately
@@ -1441,7 +1479,7 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
         'mud' => 'assets/audio/sfx/sfx_step_mud.wav',
         'dirt' => 'assets/audio/sfx/sfx_step_dirt.wav',
         'wood_stage' || 'velvet_carpet' => 'assets/audio/sfx/sfx_step_wood.wav',
-        'asphalt' => 'assets/audio/sfx/sfx_step_asphalt.wav',
+        'asphalt' || 'stone' => 'assets/audio/sfx/sfx_step_asphalt.wav',
         _ => 'assets/audio/sfx/sfx_step_grass.wav',
       };
       unawaited(
@@ -2039,6 +2077,15 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
       );
     }
 
+    // 6. Redesigned Festival Grounds landmarks (Campfire Hearth, Crossroads Mosaic,
+    //    FOH Mixing Tower, Cedar Creek Footbridges & Catenary Festoon Garlands)
+    final grounds = _groundsScenery;
+    if (grounds != null) {
+      out.addAll(
+        grounds.collectVisibleLights(bounds, lanternStrength: lanternStrength),
+      );
+    }
+
     return out;
   }
 
@@ -2304,6 +2351,20 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
       );
       return;
     }
+    final signDist = (ui.Offset(pos.x, pos.y) -
+            FestivalGroundsSceneryController.crossroadsFingerpostPos)
+        .distance;
+    if (signDist <= 40.0) {
+      _emitWorldContextPrompt(
+        id: 'crossroads_fingerpost',
+        nearbyLabel: 'Read Central Crossroads Trail Signpost [E]',
+        bubbleLabel: 'Orchard Trail Map',
+        icon: '🪧',
+        worldAnchor: FestivalGroundsSceneryController.crossroadsFingerpostPos
+            .translate(0.0, -28.0),
+      );
+      return;
+    }
 
     final npcHit = _nearestNpcWithDist(pos, maxRadius: 44.0);
     final objHit = _nearestInteractableWithDist(pos, maxRadius: 44.0);
@@ -2551,6 +2612,12 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
     }
     if ((playerOffset - OrchardGateLayout.cultivarBoothPos).distance <= 44.0) {
       openCultivarBooth();
+      return;
+    }
+    if ((playerOffset - FestivalGroundsSceneryController.crossroadsFingerpostPos)
+            .distance <=
+        42.0) {
+      openCrossroadsMapSign();
       return;
     }
 

@@ -961,6 +961,441 @@ function buildTilesetAndTsx() {
     }
   });
 
+  // 50: Sunlit Golden Clover & Dandelion Meadow Grass
+  drawTile(50, (ox, oy) => {
+    paintGrassBase(ox, oy, '#478e4d', 50);
+    for (const [cx, cy] of [[3, 4], [11, 3], [7, 10], [13, 12], [2, 13]]) {
+      ts.setPixel(ox + cx, oy + cy + 1, hex('#234f29'));
+      ts.setPixel(ox + cx, oy + cy, hex('#fff3b0'));
+      ts.setPixel(ox + cx + 1, oy + cy, hex('#ffd166'));
+    }
+    ts.setPixel(ox + 6, oy + 5, hex('#ffffff'));
+    ts.setPixel(ox + 10, oy + 8, hex('#ffffff'));
+  });
+
+  // 51: Fallen Golden Walnut Leaf & Dropped Nut Scatter on Orchard Grass
+  drawTile(51, (ox, oy) => {
+    paintGrassBase(ox, oy, '#3e7c44', 51);
+    const leaves = [
+      [2, 3, '#d48c3b'], [5, 4, '#e9c46a'], [11, 5, '#bc6c25'],
+      [8, 10, '#e09f3e'], [3, 12, '#c97b50'], [12, 13, '#f4a261'],
+    ];
+    for (const [lx, ly, col] of leaves) {
+      ts.fillRect(ox + lx, oy + ly, 2, 1, hex(col));
+      ts.setPixel(ox + lx + 1, oy + ly + 1, shade(hex(col), 0.72));
+    }
+    // Tiny fallen walnut shell
+    ts.fillLitEllipsoid(ox + 9, oy + 7, 1.8, 1.5, hex('#9c6644'), { specStrength: 0.35 });
+  });
+
+  // 52: Organic Grassy Dirt Road Verge (soft transition shoulder, mud-compatible!)
+  drawTile(52, (ox, oy) => {
+    paintGrassBase(ox, oy, '#417f47', 52);
+    const dirt = hex('#9e724d');
+    for (let y = 0; y < 16; y++) {
+      for (let x = 0; x < 16; x++) {
+        const d = Math.hypot(x - 7.5, y - 7.5) + (hash2(x, y, 52) - 0.5) * 3.8;
+        if (d < 6.4) {
+          const grain = 0.90 + hash2(x, y, 152) * 0.22;
+          ts.setPixel(ox + x, oy + y, shade(dirt, grain));
+        }
+      }
+    }
+    ts.setPixel(ox + 5, oy + 6, hex('#cbb294'));
+    ts.setPixel(ox + 10, oy + 9, hex('#704e32'));
+  });
+
+  // 53: Warm Sandstone & Cobble Plaza Flagstones
+  drawTile(53, (ox, oy) => {
+    ts.fillRect(ox, oy, 16, 16, hex('#594a3e'));
+    const stones = [
+      [0, 0, 7, 7, '#b89f84'],
+      [8, 0, 8, 6, '#c4ab8e'],
+      [0, 8, 6, 8, '#ad9378'],
+      [7, 7, 9, 9, '#bfa588'],
+    ];
+    for (const [sx, sy, sw, sh, col] of stones) {
+      const base = hex(col);
+      ts.fillRect(ox + sx, oy + sy, sw, sh, base);
+      ts.fillRect(ox + sx, oy + sy, sw, 1, shade(base, 1.18));
+      ts.fillRect(ox + sx, oy + sy + sh - 1, sw, 1, shade(base, 0.76));
+    }
+  });
+
+  // 54: Mossy Slate Stepping Stones inLush Grass
+  drawTile(54, (ox, oy) => {
+    paintGrassBase(ox, oy, '#3b7842', 54);
+    ts.fillLitEllipsoid(ox + 5, oy + 5, 4.0, 2.8, hex('#8d99ae'), {
+      specStrength: 0.22,
+      outline: hex('#2b2d42'),
+    });
+    ts.fillLitEllipsoid(ox + 11, oy + 11, 3.8, 2.7, hex('#98a4b8'), {
+      specStrength: 0.24,
+      outline: hex('#2b2d42'),
+    });
+  });
+
+  // 55: Rustic Split-Cedar Corduroy Boardwalk Planks
+  drawTile(55, (ox, oy) => {
+    paintGrassBase(ox, oy, '#35683b', 55);
+    for (let py = 1; py < 15; py += 4) {
+      const plank = py % 8 === 1 ? hex('#9c6644') : hex('#8d5b3c');
+      ts.fillRect(ox + 1, oy + py, 14, 3, plank);
+      ts.fillRect(ox + 1, oy + py, 14, 1, shade(plank, 1.18));
+      ts.fillRect(ox + 1, oy + py + 2, 14, 1, shade(plank, 0.72));
+      ts.setPixel(ox + 3, oy + py + 1, hex('#3b2314'));
+      ts.setPixel(ox + 12, oy + py + 1, hex('#3b2314'));
+    }
+  });
+
+  // 56: Willow Creek Deep Stream Water (3D riverbed + turquoise shimmer)
+  drawTile(56, (ox, oy) => {
+    for (let y = 0; y < 16; y++) {
+      for (let x = 0; x < 16; x++) {
+        const wave = Math.sin(x * 0.65 + y * 0.45) * 0.5 + 0.5;
+        const base = mixCol(hex('#134e6f'), hex('#1f8a9c'), wave * 0.72);
+        ts.setPixel(ox + x, oy + y, base);
+      }
+    }
+    ts.fillRect(ox + 2, oy + 4, 4, 1, hex('#90e0ef', 190));
+    ts.fillRect(ox + 9, oy + 11, 5, 1, hex('#caf0f8', 180));
+  });
+
+  // 57: Willow Creek Sparkling Riffles & River Pebbles
+  drawTile(57, (ox, oy) => {
+    for (let y = 0; y < 16; y++) {
+      for (let x = 0; x < 16; x++) {
+        const wave = Math.cos(x * 0.7 - y * 0.5) * 0.5 + 0.5;
+        const base = mixCol(hex('#166080'), hex('#2ec4b6'), wave * 0.78);
+        ts.setPixel(ox + x, oy + y, base);
+      }
+    }
+    ts.fillEllipse(ox + 5, oy + 9, 2.2, 1.3, hex('#48cae4'));
+    ts.fillRect(ox + 3, oy + 3, 5, 1, hex('#ffffff', 210));
+    ts.fillRect(ox + 8, oy + 7, 4, 1, hex('#caf0f8', 210));
+    ts.fillRect(ox + 4, oy + 13, 6, 1, hex('#ffffff', 185));
+  });
+
+  // 58: Mossy Creek Bank & Smooth River Cobbles
+  drawTile(58, (ox, oy) => {
+    paintGrassBase(ox, oy, '#2d6a4f', 58);
+    for (const [cx, cy, rx, col] of [
+      [4, 5, 2.6, '#778da9'],
+      [11, 6, 2.3, '#8d99ae'],
+      [7, 12, 2.8, '#6c757d'],
+      [13, 13, 2.1, '#98c1d9'],
+    ]) {
+      ts.fillLitEllipsoid(ox + cx, oy + cy, rx, 1.7, hex(col), {
+        specStrength: 0.30,
+        outline: hex('#1d2d35'),
+      });
+    }
+    // Emerald reed tufts
+    ts.fillRect(ox + 2, oy + 9, 1, 4, hex('#52b788'));
+    ts.fillRect(ox + 3, oy + 10, 1, 3, hex('#74c69d'));
+  });
+
+  // 59: Arched Cedar Footbridge Deck with Side Timber Stringers
+  drawTile(59, (ox, oy) => {
+    ts.fillRect(ox, oy, 16, 16, hex('#134e6f'));
+    ts.fillRect(ox, oy + 1, 16, 14, hex('#4a2e1b'));
+    for (let px = 0; px < 16; px += 4) {
+      const plank = (px / 4) % 2 === 0 ? hex('#a46c42') : hex('#8f5934');
+      ts.fillRect(ox + px, oy + 2, 3, 12, plank);
+      ts.fillRect(ox + px, oy + 2, 3, 1, shade(plank, 1.2));
+      ts.fillRect(ox + px, oy + 13, 3, 1, shade(plank, 0.72));
+    }
+    ts.fillRect(ox, oy + 1, 16, 2, hex('#c68b59'));
+    ts.fillRect(ox, oy + 13, 16, 2, hex('#6f4518'));
+  });
+
+  // 60: Tall Golden 1969 Sunflowers (decor)
+  drawTile(60, (ox, oy) => {
+    for (const [sx, sy] of [[4, 6], [11, 5], [8, 10]]) {
+      ts.fillRect(ox + sx, oy + sy + 2, 1, 5, hex('#2d6a4f'));
+      ts.setPixel(ox + sx - 1, oy + sy + 4, hex('#52b788'));
+      ts.fillLitEllipsoid(ox + sx + 0.5, oy + sy, 2.8, 2.8, hex('#ffbe0b'), {
+        specStrength: 0.35,
+      });
+      ts.fillEllipse(ox + sx + 0.5, oy + sy, 1.3, 1.3, hex('#4a250b'));
+    }
+  });
+
+  // 61: California Poppy & Marigold Wildflower Patch (decor)
+  drawTile(61, (ox, oy) => {
+    const blooms = [
+      [3, 4, '#fb5607'], [9, 3, '#ffbe0b'], [13, 7, '#ff595e'],
+      [5, 10, '#ff9f1c'], [11, 12, '#ffca3a'], [2, 13, '#fb5607'],
+    ];
+    for (const [bx, by, col] of blooms) {
+      ts.setPixel(ox + bx, oy + by + 2, hex('#2d6a4f'));
+      ts.fillLitEllipsoid(ox + bx, oy + by, 1.9, 1.7, hex(col), { specStrength: 0.35 });
+      ts.setPixel(ox + bx, oy + by, hex('#fff3b0'));
+    }
+  });
+
+  // 62: Fragrant Wild Lavender & Chamomile Bed (decor)
+  drawTile(62, (ox, oy) => {
+    for (const lx of [3, 6, 10, 13]) {
+      ts.fillRect(ox + lx, oy + 8, 1, 5, hex('#40916c'));
+      ts.fillRect(ox + lx, oy + 4, 1, 4, hex('#9d4edd'));
+      ts.setPixel(ox + lx, oy + 3, hex('#e0aaff'));
+      ts.setPixel(ox + lx + (lx % 2 === 0 ? 1 : -1), oy + 5, hex('#c77dff'));
+    }
+    ts.fillEllipse(ox + 8, oy + 12, 1.6, 1.6, hex('#ffffff'));
+    ts.setPixel(ox + 8, oy + 12, hex('#ffd166'));
+  });
+
+  // 63: Woodland Ferns & Red Amanita Fairy-Ring Toadstools (decor)
+  drawTile(63, (ox, oy) => {
+    // Lush radiating fern fronds
+    for (const [fx, fy] of [[2, 7], [6, 5], [10, 6], [4, 11]]) {
+      ts.fillRect(ox + fx, oy + fy, 4, 2, hex('#2d6a4f'));
+      ts.fillRect(ox + fx + 1, oy + fy - 1, 2, 1, hex('#52b788'));
+    }
+    // 2 spotted red toadstools
+    for (const [mx, my, r] of [[11, 11, 2.6], [5, 12, 2.0]]) {
+      ts.fillRect(ox + mx, oy + my, 2, 3, hex('#f8edeb'));
+      ts.fillLitEllipsoid(ox + mx + 0.5, oy + my - 0.6, r, 1.7, hex('#e63946'), {
+        specStrength: 0.4,
+      });
+      ts.setPixel(ox + mx, oy + my - 1, hex('#ffffff'));
+      ts.setPixel(ox + mx + 1, oy + my - 1, hex('#ffffff'));
+    }
+  });
+
+  // 64: Floating Creek Waterlily Pad & Pink Lotus Blossom (decor)
+  drawTile(64, (ox, oy) => {
+    ts.fillLitEllipsoid(ox + 8, oy + 9, 5.2, 3.6, hex('#40916c'), {
+      specStrength: 0.25,
+      outline: hex('#1b4332'),
+    });
+    ts.fillRect(ox + 8, oy + 9, 5, 1, hex('#166080'));
+    ts.fillLitEllipsoid(ox + 7, oy + 7.2, 2.4, 1.9, hex('#ff8fab'), {
+      specStrength: 0.45,
+    });
+    ts.setPixel(ox + 7, oy + 7, hex('#ffd166'));
+  });
+
+  // 65: 3D Twine-Bound Golden Hay Bale Lounge Seat (decor, walkable edge)
+  drawTile(65, (ox, oy) => {
+    ts.fillEllipse(ox + 8, oy + 14, 7, 2, hex('#000000', 85));
+    ts.fillRect(ox + 2, oy + 5, 12, 9, hex('#d4a347'));
+    ts.fillRect(ox + 2, oy + 4, 12, 3, hex('#f4d35e'));
+    for (let x = 2; x < 14; x += 2) {
+      ts.setPixel(ox + x, oy + 8, hex('#b58328'));
+      ts.setPixel(ox + x + 1, oy + 11, hex('#9c6b19'));
+    }
+    // Twine bindings
+    ts.fillRect(ox + 5, oy + 4, 1, 10, hex('#7f4f24'));
+    ts.fillRect(ox + 10, oy + 4, 1, 10, hex('#7f4f24'));
+  });
+
+  // 66: Stacked Oak Cider & Persimmon Barrels (collidable decor)
+  drawTile(66, (ox, oy) => {
+    ts.fillEllipse(ox + 8, oy + 14.5, 6.8, 2.0, hex('#000000', 95));
+    ts.fillLitCylinder(ox + 3, oy + 3, 10, 11, hex('#8c5a32'), { specStrength: 0.28 });
+    ts.fillLitEllipsoid(ox + 8, oy + 3.2, 5.0, 2.0, hex('#b07d48'), { specStrength: 0.3 });
+    ts.fillRect(ox + 3, oy + 5, 10, 1, hex('#3d405b'));
+    ts.fillRect(ox + 3, oy + 11, 10, 1, hex('#3d405b'));
+    ts.setPixel(ox + 8, oy + 8, hex('#ffd166'));
+  });
+
+  // 67: Overflowing Wicker Harvest Walnut Basket (decor)
+  drawTile(67, (ox, oy) => {
+    ts.fillEllipse(ox + 8, oy + 14, 5.5, 1.8, hex('#000000', 85));
+    ts.fillLitCylinder(ox + 4, oy + 8, 8, 6, hex('#b07d48'), { specStrength: 0.22 });
+    for (const [wx, wy] of [[5.5, 7.2], [8.0, 6.6], [10.3, 7.3], [7.0, 5.5], [9.2, 5.7]]) {
+      ts.fillLitEllipsoid(ox + wx, oy + wy, 1.7, 1.5, hex('#d49a5a'), {
+        specStrength: 0.35,
+        outline: hex('#4a2c11'),
+      });
+    }
+  });
+
+  // 68: Gnarled Creekside Weeping Willow Trunk (collidable decor)
+  drawTile(68, (ox, oy) => {
+    ts.fillEllipse(ox + 8, oy + 14.5, 6.5, 2.0, hex('#000000', 100));
+    ts.fillLitCylinder(ox + 5, oy + 3, 6, 11, hex('#6b5844'), { specStrength: 0.2 });
+    ts.fillRect(ox + 4, oy + 12, 2, 2, hex('#524334'));
+    ts.fillRect(ox + 10, oy + 12, 2, 2, hex('#524334'));
+    ts.fillLitEllipsoid(ox + 8, oy + 3, 6.2, 3.0, hex('#74c69d'), { specStrength: 0.3 });
+  });
+
+  // 69: Cascading Chartreuse Weeping Willow Canopy Fronds (canopy)
+  drawTile(69, (ox, oy) => {
+    ts.fillLitEllipsoid(ox + 8, oy + 6, 7.5, 5.5, hex('#52b788'), {
+      specStrength: 0.28,
+      outline: hex('#1b4332'),
+    });
+    for (let x = 2; x <= 14; x += 2) {
+      const len = 5 + (x % 3) * 2;
+      ts.fillRect(ox + x, oy + 7, 1, len, hex(x % 4 === 0 ? '#95d5b2' : '#74c69d'));
+      ts.setPixel(ox + x, oy + 7 + len, hex('#d8f3dc'));
+    }
+  });
+
+  // 70: Heritage Walnut Orchard Canopy Bough Left (canopy with green walnut drupes!)
+  drawTile(70, (ox, oy) => {
+    ts.fillLitEllipsoid(ox + 9, oy + 8, 7.2, 6.8, hex('#2d6a4f'), {
+      specStrength: 0.26,
+      outline: hex('#143022'),
+    });
+    ts.fillLitEllipsoid(ox + 7, oy + 6, 4.8, 4.2, hex('#40916c'), { specStrength: 0.3 });
+    // Ripening orchard walnut hulls
+    ts.fillLitEllipsoid(ox + 6, oy + 10, 1.8, 1.8, hex('#95d5b2'), { specStrength: 0.45 });
+    ts.fillLitEllipsoid(ox + 12, oy + 9, 1.7, 1.7, hex('#b7e4c7'), { specStrength: 0.45 });
+  });
+
+  // 71: Heritage Walnut Orchard Canopy Bough Right (canopy with golden-dappled foliage!)
+  drawTile(71, (ox, oy) => {
+    ts.fillLitEllipsoid(ox + 7, oy + 8, 7.2, 6.8, hex('#2d6a4f'), {
+      specStrength: 0.26,
+      outline: hex('#143022'),
+    });
+    ts.fillLitEllipsoid(ox + 9, oy + 6, 4.8, 4.2, hex('#52b788'), { specStrength: 0.32 });
+    ts.fillLitEllipsoid(ox + 5, oy + 9, 1.7, 1.7, hex('#95d5b2'), { specStrength: 0.45 });
+    ts.fillLitEllipsoid(ox + 10, oy + 11, 1.8, 1.8, hex('#d9ed92'), { specStrength: 0.45 });
+  });
+
+  // 72 & 73: 1969 Teal Canvas A-Frame Pup Tent (Left & Right halves)
+  drawTile(72, (ox, oy) => {
+    ts.fillRect(ox + 1, oy + 13, 15, 2, hex('#000000', 90));
+    for (let y = 3; y <= 13; y++) {
+      const xStart = Math.max(2, 13 - (y - 3));
+      ts.fillRect(ox + xStart, oy + y, 16 - xStart, 1, y < 6 ? hex('#48cae4') : hex('#0096c7'));
+    }
+    ts.fillRect(ox + 2, oy + 13, 14, 1, hex('#ffd166'));
+    ts.setPixel(ox + 1, oy + 13, hex('#e63946'));
+  });
+  drawTile(73, (ox, oy) => {
+    ts.fillRect(ox, oy + 13, 15, 2, hex('#000000', 90));
+    for (let y = 3; y <= 13; y++) {
+      const w = Math.min(14, 4 + (y - 3));
+      ts.fillRect(ox, oy + y, w, 1, y < 6 ? hex('#0077b6') : hex('#023e8a'));
+    }
+    // Warm tent opening triangle
+    ts.fillRect(ox, oy + 8, 4, 6, hex('#2b180b'));
+    ts.fillRect(ox, oy + 10, 3, 4, hex('#ffb703', 190));
+    ts.fillRect(ox, oy + 13, 14, 1, hex('#ffd166'));
+  });
+
+  // 74 & 75: 1969 Saffron & Violet Tie-Dye Dome Tent (Left & Right halves)
+  drawTile(74, (ox, oy) => {
+    ts.fillRect(ox + 2, oy + 13, 14, 2, hex('#000000', 90));
+    ts.fillLitEllipsoid(ox + 14, oy + 10, 11, 7.5, hex('#ff9f1c'), {
+      specStrength: 0.3,
+      outline: hex('#3c096c'),
+    });
+    ts.fillRect(ox + 6, oy + 8, 10, 2, hex('#9d4edd'));
+    ts.fillRect(ox + 4, oy + 13, 12, 1, hex('#ffd166'));
+  });
+  drawTile(75, (ox, oy) => {
+    ts.fillRect(ox, oy + 13, 14, 2, hex('#000000', 90));
+    ts.fillLitEllipsoid(ox + 2, oy + 10, 11, 7.5, hex('#f77f00'), {
+      specStrength: 0.3,
+      outline: hex('#3c096c'),
+    });
+    ts.fillRect(ox, oy + 8, 10, 2, hex('#7209b7'));
+    ts.fillRect(ox, oy + 9, 3, 5, hex('#ffd166', 210));
+  });
+
+  // 76, 77, 78: 1969 Painted Flower-Power VW Microbus (Front, Mid, Rear)
+  drawTile(76, (ox, oy) => {
+    ts.fillRect(ox + 2, oy + 14, 14, 2, hex('#000000', 110));
+    ts.fillRect(ox + 3, oy + 2, 13, 6, hex('#fff3d6'));
+    ts.fillRect(ox + 2, oy + 8, 14, 5, hex('#2ec4b6'));
+    // Split safari windshield + chrome VW nose + headlight
+    ts.fillRect(ox + 4, oy + 3, 5, 4, hex('#90e0ef'));
+    ts.fillRect(ox + 11, oy + 3, 4, 4, hex('#48cae4'));
+    ts.fillEllipse(ox + 4, oy + 10, 1.5, 1.5, hex('#ffe66d'));
+    ts.fillLitEllipsoid(ox + 11, oy + 13.5, 3.0, 2.5, hex('#212529'), { specStrength: 0.3 });
+    ts.setPixel(ox + 11, oy + 13, hex('#dee2e6'));
+  });
+  drawTile(77, (ox, oy) => {
+    ts.fillRect(ox, oy + 14, 16, 2, hex('#000000', 110));
+    ts.fillRect(ox, oy + 1, 16, 1, hex('#d4a373')); // roof rack
+    ts.fillRect(ox + 3, oy + 0, 10, 2, hex('#e76f51')); // strapped camp bedroll
+    ts.fillRect(ox, oy + 2, 16, 6, hex('#fff3d6'));
+    ts.fillRect(ox, oy + 8, 16, 5, hex('#2ec4b6'));
+    ts.fillRect(ox + 2, oy + 3, 5, 4, hex('#48cae4'));
+    ts.fillRect(ox + 9, oy + 3, 5, 4, hex('#48cae4'));
+    // Hand-painted flower-power peace decals!
+    ts.fillEllipse(ox + 5, oy + 10, 2.0, 2.0, hex('#ff595e'));
+    ts.setPixel(ox + 5, oy + 10, hex('#ffd166'));
+    ts.fillEllipse(ox + 12, oy + 10, 1.8, 1.8, hex('#ffbe0b'));
+    ts.setPixel(ox + 12, oy + 10, hex('#9d4edd'));
+  });
+  drawTile(78, (ox, oy) => {
+    ts.fillRect(ox, oy + 14, 14, 2, hex('#000000', 110));
+    ts.fillRect(ox, oy + 2, 13, 6, hex('#fff3d6'));
+    ts.fillRect(ox, oy + 8, 14, 5, hex('#2ec4b6'));
+    ts.fillRect(ox + 2, oy + 3, 6, 4, hex('#48cae4'));
+    ts.fillRect(ox + 12, oy + 9, 2, 2, hex('#e63946')); // tail light
+    ts.fillLitEllipsoid(ox + 6, oy + 13.5, 3.0, 2.5, hex('#212529'), { specStrength: 0.3 });
+    ts.setPixel(ox + 6, oy + 13, hex('#dee2e6'));
+  });
+
+  // 79: Communal Campfire Stone Hearth with Glowing Coals (lantern=true!)
+  drawTile(79, (ox, oy) => {
+    ts.fillEllipse(ox + 8, oy + 9, 6.8, 5.2, hex('#2b2d42'));
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      ts.fillLitEllipsoid(
+        ox + 8 + Math.cos(a) * 5.2,
+        oy + 9 + Math.sin(a) * 3.8,
+        2.0,
+        1.6,
+        hex('#8d99ae'),
+        { specStrength: 0.25 },
+      );
+    }
+    // Crossed cedar logs & glowing embers
+    ts.fillRect(ox + 5, oy + 8, 6, 2, hex('#5c3a21'));
+    ts.fillLitEllipsoid(ox + 8, oy + 7.2, 3.0, 3.4, hex('#ff9f1c'), { specStrength: 0.5 });
+    ts.fillLitEllipsoid(ox + 8, oy + 6.5, 1.7, 2.2, hex('#fff3b0'), { specStrength: 0.7 });
+  });
+
+  // 80: Carved Wooden 1969 Festival Directional Fingerpost Sign
+  drawTile(80, (ox, oy) => {
+    ts.fillEllipse(ox + 8, oy + 14.5, 4.5, 1.5, hex('#000000', 90));
+    ts.fillLitCylinder(ox + 7, oy + 2, 2, 13, hex('#6f4518'), { specStrength: 0.25 });
+    ts.fillRect(ox + 2, oy + 3, 11, 3, hex('#e9c46a'));
+    ts.fillRect(ox + 3, oy + 7, 11, 3, hex('#52b788'));
+    ts.fillRect(ox + 2, oy + 11, 9, 2, hex('#f4a261'));
+    ts.setPixel(ox + 8, oy + 1, hex('#ffd166'));
+  });
+
+  // 81: Artisan Market Timber Post with Festoon Bulb & Pennants (lantern=true!)
+  drawTile(81, (ox, oy) => {
+    ts.fillEllipse(ox + 8, oy + 14.5, 4.0, 1.5, hex('#000000', 90));
+    ts.fillLitCylinder(ox + 7, oy + 2, 2, 13, hex('#7f4f24'), { specStrength: 0.25 });
+    ts.fillRect(ox + 2, oy + 2, 12, 1, hex('#3b2314'));
+    ts.fillRect(ox + 3, oy + 3, 3, 2, hex('#ff595e'));
+    ts.fillRect(ox + 10, oy + 3, 3, 2, hex('#4cc9f0'));
+    ts.fillLitEllipsoid(ox + 8, oy + 4.2, 2.0, 2.0, hex('#fff3b0'), { specStrength: 0.7 });
+  });
+
+  // 82: Leaning Acoustic Folk Guitar & Vintage Vinyl Milk Crate (decor)
+  drawTile(82, (ox, oy) => {
+    ts.fillEllipse(ox + 8, oy + 14.5, 6.0, 1.8, hex('#000000', 85));
+    ts.fillRect(ox + 2, oy + 8, 6, 6, hex('#e76f51'));
+    ts.fillRect(ox + 3, oy + 6, 4, 2, hex('#212529')); // LP sleeves sticking up
+    ts.fillLitEllipsoid(ox + 11, oy + 10.5, 3.2, 3.8, hex('#d48c3b'), {
+      specStrength: 0.4,
+      outline: hex('#3b2314'),
+    });
+    ts.setPixel(ox + 11, oy + 10, hex('#2b180b'));
+    ts.fillRect(ox + 11, oy + 3, 2, 5, hex('#6f4518'));
+  });
+
+  // 83: Rustic Vertical Split-Rail Orchard Fence
+  drawTile(83, (ox, oy) => {
+    ts.fillLitCylinder(ox + 6, oy, 4, 16, hex('#7f5539'), { specStrength: 0.22 });
+    ts.fillRect(ox + 5, oy + 3, 6, 2, hex('#9c6644'));
+    ts.fillRect(ox + 5, oy + 11, 6, 2, hex('#9c6644'));
+  });
+
   ts.save(path.join(ROOT, 'assets/images/tiles/orchard_tileset.png'));
 
   const tileMetadata = [
@@ -1014,6 +1449,40 @@ function buildTilesetAndTsx() {
     { id: 47, collidable: true },
     { id: 48, surface: 'grass' },
     { id: 49, collidable: true },
+    { id: 50, surface: 'grass' },
+    { id: 51, surface: 'grass' },
+    { id: 52, surface: 'dirt' },
+    { id: 53, surface: 'stone' },
+    { id: 54, surface: 'stone' },
+    { id: 55, surface: 'wood_stage' },
+    { id: 56, surface: 'water', collidable: true },
+    { id: 57, surface: 'water', collidable: true },
+    { id: 58, surface: 'grass' },
+    { id: 59, surface: 'wood_stage' },
+    { id: 60, surface: 'grass' },
+    { id: 61, surface: 'grass' },
+    { id: 62, surface: 'grass' },
+    { id: 63, surface: 'grass' },
+    { id: 64, surface: 'water' },
+    { id: 65, surface: 'grass' },
+    { id: 66, collidable: true },
+    { id: 67, surface: 'grass' },
+    { id: 68, collidable: true },
+    { id: 69, canopy: true, occlusion: true },
+    { id: 70, canopy: true, occlusion: true },
+    { id: 71, canopy: true, occlusion: true },
+    { id: 72, collidable: true, occlusion: true },
+    { id: 73, collidable: true, occlusion: true },
+    { id: 74, collidable: true, occlusion: true },
+    { id: 75, collidable: true, occlusion: true },
+    { id: 76, collidable: true },
+    { id: 77, collidable: true },
+    { id: 78, collidable: true },
+    { id: 79, lantern: true },
+    { id: 80, surface: 'grass' },
+    { id: 81, lantern: true },
+    { id: 82, surface: 'grass' },
+    { id: 83, collidable: true },
   ];
 
   const tileXml = tileMetadata
@@ -1036,12 +1505,13 @@ ${tileXml}
 </tileset>
 `;
   fs.writeFileSync(path.join(ROOT, 'assets/tiles/orchard_tileset.tsx'), tsxContent, 'utf8');
+  return tileMetadata;
 }
 
 // ============================================================================
-// 2. FULL 128x96 9-ZONE TILED MAP (free_orchard_full.tmx)
+// 2. FULL 128x96 9-ZONE TILED MAP (free_orchard_full.tmx) — REDESIGNED & POLISHED
 // ============================================================================
-function buildFullOrchardTmx() {
+function buildFullOrchardTmx(tileMetadata = []) {
   const W = 128;
   const H = 96;
   const ground = new Int32Array(W * H);
@@ -1063,14 +1533,32 @@ function buildFullOrchardTmx() {
       for (let x = x0; x < x0 + w; x++) fn(x, y, id);
     }
   };
+  const fillDisc = (fn, cx, cy, rx, ry, id) => {
+    for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) {
+      for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) {
+        if (((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1.0) {
+          fn(x, y, id);
+        }
+      }
+    }
+  };
 
+  // 1. Varied Organic Orchard Meadow Base (lush grass + golden clover drifts + fallen walnut leaves)
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
-      const v = (x * 7 + y * 13) % 9;
-      setG(x, y, v === 0 ? 2 : v % 3 === 0 ? 1 : 0);
+      const n = Math.sin(x * 0.16 + y * 0.11) + Math.cos(x * 0.09 - y * 0.19);
+      const v = (x * 7 + y * 13) % 11;
+      if (n > 1.15 && v % 3 === 0) {
+        setG(x, y, 50); // sunlit clover & dandelion drift
+      } else if (n < -1.18 && v % 2 === 0) {
+        setG(x, y, 51); // fallen golden walnut leaves
+      } else {
+        setG(x, y, v === 0 ? 2 : v % 3 === 0 ? 1 : 0);
+      }
     }
   }
 
+  // Outer perimeter woodland wall
   for (let x = 0; x < W; x++) {
     setD(x, 0, 10);
     setD(x, H - 1, 10);
@@ -1079,31 +1567,115 @@ function buildFullOrchardTmx() {
   for (let y = 0; y < H; y++) {
     setD(0, y, 10);
     setD(W - 1, y, 10);
+    if (y > 1 && y < H - 2 && y % 3 !== 0) {
+      setC(1, y, 70);
+      setC(W - 2, y, 71);
+    }
   }
 
-  // Interconnecting Dirt Orchard Lanes
-  fillRect(setG, 36, 42, 4, 50, 3);
-  fillRect(setG, 14, 38, 92, 3, 3);
-  fillRect(setG, 14, 68, 92, 3, 3);
-  fillRect(setG, 74, 16, 3, 55, 3);
-  fillRect(setG, 15, 38, 3, 32, 3);
-  fillRect(setG, 104, 34, 3, 37, 3);
+  // 2. Organic Winding Orchard Lanes & Soft Grassy-Dirt Verges
+  // Soft road shoulders first (id 52 = surface 'dirt'), then rich trodden dirt core (id 3)
+  const paintDirtCorridor = (x0, y0, w, h) => {
+    fillRect(setG, x0 - 1, y0 - 1, w + 2, h + 2, 52);
+    fillRect(setG, x0, y0, w, h, 3);
+  };
+  paintDirtCorridor(36, 40, 4, 52); // Grand North-South Gate Promenade
+  paintDirtCorridor(14, 38, 92, 3); // North Stage Boulevard
+  paintDirtCorridor(14, 68, 92, 3); // South Campground & Urbano Boulevard
+  paintDirtCorridor(74, 16, 3, 55); // Undergrowth -> Meadow -> Vendor Row Trail
+  paintDirtCorridor(15, 38, 3, 32); // West Grove Velvet-to-Urbano Lane
+  paintDirtCorridor(104, 31, 3, 40); // East Andromeda-to-Arcade Ridge Lane
 
-  // ZONE 1: Front Gate & Broken Fences
+  // Keep Mud-Slide Meadow bowls (tx:12..44, ty:33..42) clean grass/dirt so Set 8 Mud Party shines!
+  for (let ty = 34; ty <= 37; ty++) {
+    for (let tx = 13; tx <= 43; tx++) {
+      if (ground[ty * W + tx] === GID(52)) setG(tx, ty, (tx + ty) % 2 === 0 ? 0 : 1);
+    }
+  }
+
+  // Central Orchard Crossroads Peace Plaza (around 608, 864 => tx:38, ty:54)
+  // Note: (37, 60) MUST remain surface='dirt' for WorldMutators rainstorm test!
+  fillDisc(setG, 38, 54, 4.6, 3.6, 53);
+  fillDisc(setG, 38, 39, 3.8, 2.6, 53); // Main Roots South Bowl Plaza
+  fillDisc(setG, 38, 69, 3.8, 2.6, 53); // South Gate North Crossroads
+  // Scenic diagonal stepping-stone shortcuts connecting Crossroads to Meadow & Campground!
+  for (let i = 0; i < 14; i++) {
+    setG(42 + i, 53 - Math.floor(i * 0.8), 54);
+    setG(42 + i, 55 + Math.floor(i * 0.85), 54);
+    setG(34 - i, 55 + Math.floor(i * 0.85), 54);
+  }
+  // Directional festival fingerpost at Crossroads edge (walkable!)
+  setD(35, 53, 80);
+  setD(41, 53, 17);
+  setD(35, 56, 17);
+
+  // 3. Full Winding WILLOW CREEK + Mossy Cobble Banks + 3 Wide Cedar Footbridges!
+  // Winds cleanly through the eastern orchard valley (tx ~ 91..93) from northern ridge (ty:18)
+  // down to the southern boundary (ty:94), plus a northern spring pool feeding Mellow Meadow!
+  for (let y = 18; y <= 94; y++) {
+    const cx = 91 + Math.round(Math.sin(y * 0.14) * 1.2);
+    setG(cx - 1, y, 58);
+    setG(cx + 2, y, 58);
+    setG(cx, y, y % 4 === 0 ? 57 : 56);
+    setG(cx + 1, y, (y + 2) % 4 === 0 ? 57 : 56);
+    if (y % 7 === 0 && (y < 37 || y > 42) && (y < 52 || y > 56) && (y < 67 || y > 72)) {
+      setD(cx + (y % 2), y, 64); // floating waterlily & lotus!
+    }
+  }
+  // Wide Walkable Cedar Footbridges carrying every East-West lane & mid-orchard trail across Willow Creek!
+  for (const [by0, by1] of [[37, 41], [53, 55], [67, 71]]) {
+    for (let y = by0; y <= by1; y++) {
+      for (let x = 89; x <= 95; x++) {
+        setD(x, y, -1);
+        if (x >= 90 && x <= 94) {
+          setG(x, y, 59); // Cedar Footbridge Deck (walkable wood_stage!)
+        } else {
+          setG(x, y, 55); // Corduroy timber bridge approach
+        }
+      }
+    }
+    setD(89, by0, 17); // Bridge-head warm lanterns!
+    setD(95, by1, 17);
+  }
+  // Creekside Weeping Willows along Willow Creek banks
+  for (const [wx, wy] of [[89, 25], [95, 31], [89, 46], [95, 61], [89, 78], [95, 85]]) {
+    setD(wx, wy, 68);
+    setC(wx, wy - 1, 69);
+    setC(wx - 1, wy - 1, 69);
+    setC(wx + 1, wy - 1, 69);
+  }
+
+  // 4. ZONE 1: Front Gate, Arrival Microbuses & Broken Fences
   fillRect(setG, 34, 88, 8, 7, 7);
+  // Warm cobblestone apron around Orchard Gate kiosks (536,1320 & 680,1320)
+  fillRect(setG, 32, 81, 12, 4, 53);
+  fillRect(setG, 36, 75, 4, 13, 3);
   setD(36, 95, -1);
   setD(37, 95, -1);
   setD(38, 95, -1);
   setD(39, 95, -1);
-  for (let x = 26; x <= 50; x++) {
-    setD(x, 74, 8);
+  for (let x = 24; x <= 52; x++) {
+    setD(x, 74, 8); // Perimeter wooden gate fence (including required (37,74)!)
   }
   setD(33, 76, 47);
   setD(43, 76, 47);
   setD(42, 76, 17);
   setD(33, 82, 17);
+  setD(35, 86, 17);
+  setD(40, 86, 17);
+  // Parked 1969 Painted Peace VW Microbuses in the South Arrival Meadow!
+  setD(25, 86, 76); setD(26, 86, 77); setD(27, 86, 78);
+  setD(48, 86, 76); setD(49, 86, 77); setD(50, 86, 78);
+  setD(23, 90, 72); setD(24, 90, 73); // Early-arrival gate camp tent
+  setD(28, 87, 82); // Acoustic guitar & vinyl crate beside VW bus
+  setD(47, 87, 65); // Hay bale lounge by east VW bus
+  // Welcome wildflower borders flanking the gate lane
+  for (let y = 77; y <= 85; y += 2) {
+    setD(31, y, y % 4 === 1 ? 60 : 61);
+    setD(44, y, y % 4 === 1 ? 61 : 62);
+  }
 
-  // ZONE 2: Main Roots Stage & High-Branch Booth
+  // 5. ZONE 2: Main Roots Stage, Amphitheater Bowl & High-Branch Booth
   fillRect(setG, 30, 21, 16, 7, 6);
   fillRect(setD, 29, 20, 18, 1, 19);
   setD(30, 22, 12);
@@ -1119,37 +1691,69 @@ function buildFullOrchardTmx() {
   fillRect(setC, 46, 18, 6, 3, 11);
   setD(29, 30, 17);
   setD(46, 30, 17);
+  setD(28, 34, 17);
+  setD(48, 34, 17);
+  // Sunflower & hay-bale amphitheater rim framing Main Roots Stage
+  for (const [sx, sy] of [[27, 23], [27, 26], [52, 23], [52, 26]]) {
+    setD(sx, sy, 60);
+  }
+  setD(28, 32, 65);
+  setD(48, 32, 65);
 
-  // ZONE 3: Velvet Canopy Stage & Upper Moss-Bloom Ledge
+  // 6. ZONE 3: Velvet Canopy Stage & Upper Moss-Bloom Cliff Sanctuary
   fillRect(setG, 5, 4, 18, 10, 48);
+  // Mossy stepping-stone path atop Upper Velvet Ledge
+  for (let x = 8; x <= 22; x += 2) setG(x, 8, 54);
   for (let x = 4; x <= 23; x++) {
     setD(x, 14, 49);
   }
   for (let y = 14; y <= 16; y++) {
     for (let x = 12; x <= 14; x++) {
-      setD(x, y, 25);
+      setD(x, y, 25); // Required moss_target (12..14, 14..16)!
     }
   }
   setD(9, 7, 46);
   fillRect(setG, 8, 20, 11, 5, 23);
   fillRect(setG, 7, 25, 13, 8, 22);
+  // Extended bohemian carpet runner & woodland fern/lavender border
+  fillRect(setG, 11, 33, 5, 4, 22);
   fillRect(setD, 8, 19, 11, 1, 24);
   setD(8, 21, 12);
   setD(18, 21, 12);
   setD(7, 27, 17);
   setD(19, 27, 17);
+  setD(6, 31, 17);
+  setD(20, 31, 17);
+  for (let y = 21; y <= 31; y += 2) {
+    setD(5, y, y % 4 === 1 ? 62 : 63);
+    setD(21, y, y % 4 === 1 ? 63 : 62);
+  }
 
-  // ZONE 4: The Mellow Meadow & The Old Oak
-  fillRect(setG, 62, 22, 28, 20, 2);
+  // 7. ZONE 4: The Mellow Meadow, Clover Rings & The Old Oak
+  fillRect(setG, 62, 22, 26, 16, 2);
+  fillDisc(setG, 72, 28, 6.5, 4.5, 50); // Golden clover circle around Blessing Stone (1152,448 => 72,28)
   fillRect(setG, 66, 28, 3, 3, 15);
   fillRect(setG, 70, 27, 4, 3, 15);
   fillRect(setG, 73, 32, 3, 3, 15);
   fillRect(setG, 68, 24, 4, 3, 28);
+  // Preserved Mellow Meadow service asphalt strip at tx:79..80, ty:23..35 (including (79,28)!)
   fillRect(setG, 79, 23, 2, 13, 7);
+  // Old Oak ancient roots, golden leaf carpet & sprawling canopy (84,24)
+  fillDisc(setG, 84, 25, 3.6, 2.8, 51);
   fillRect(setD, 84, 24, 2, 2, 27);
-  fillRect(setC, 82, 20, 6, 5, 11);
+  fillRect(setC, 81, 19, 8, 6, 11);
+  setC(82, 25, 69);
+  setC(87, 25, 69);
+  setD(82, 23, 17);
+  setD(87, 23, 17);
+  // Wildflowers framing Mellow Meadow north & east edges (clear of Ziggy's spline!)
+  for (const [fx, fy, fid] of [
+    [62, 22, 60], [64, 21, 61], [76, 21, 62], [86, 28, 61], [87, 30, 60],
+  ]) {
+    setD(fx, fy, fid);
+  }
 
-  // ZONE 5: The Andromeda Pavilion
+  // 8. ZONE 5: The Andromeda Pavilion & Crystal Approach Paths
   fillRect(setG, 100, 16, 20, 16, 29);
   for (let x = 100; x < 120; x++) {
     setD(x, 16, 30);
@@ -1159,23 +1763,44 @@ function buildFullOrchardTmx() {
     if (y < 23 || y > 25) setD(100, y, 30);
     setD(119, y, 30);
   }
+  // Stepping-stone starlight paths out to all 3 Meteoric Space-Glass Resonators!
+  for (let y = 32; y <= 38; y++) setG(109, y, 54);
+  for (let x = 96; x <= 99; x++) setG(x, 24, 54);
+  for (let y = 13; y <= 16; y++) setG(98, y, 54);
+  for (let x = 120; x <= 122; x++) setG(x, 14, 54);
+  for (let y = 32; y <= 35; y++) setG(121, y, 54);
   setD(98, 12, 31);
   setD(122, 14, 31);
   setD(121, 35, 31);
+  setD(98, 22, 17);
+  setD(107, 33, 17);
+  setD(112, 33, 17);
 
-  // ZONE 6: The Urbano Canopy
+  // 9. ZONE 6: The Urbano Canopy & Santurce Courtyard
   fillRect(setG, 7, 62, 16, 18, 34);
+  // Cobblestone Santurce dance apron in front of Don Shell-O's stage truck
+  fillRect(setG, 9, 66, 12, 8, 53);
   fillRect(setD, 10, 61, 8, 2, 32);
   setD(8, 62, 33);
   setD(9, 62, 33);
   setD(19, 62, 33);
   setD(20, 62, 33);
+  setD(7, 68, 81);
+  setD(22, 68, 81);
   setD(7, 74, 17);
   setD(22, 74, 17);
+  // Parked Santurce Tour Microbus & cider barrels on east/north courtyard edge
+  setD(24, 63, 76); setD(25, 63, 77); setD(26, 63, 78);
+  setD(6, 64, 66);
+  setD(6, 77, 60);
+  setD(23, 77, 61);
 
-  // ZONE 7: The Undergrowth & Tea-Light Circle
+  // 10. ZONE 7: The Undergrowth & Bioluminescent Tea-Light Circle
   fillRect(setG, 58, 3, 34, 14, 35);
   fillRect(setG, 23, 7, 35, 3, 5);
+  // Stepping stones along Janice's secret moss trail & southern Undergrowth entrance
+  for (let x = 25; x <= 56; x += 3) setG(x, 8, 54);
+  for (let y = 14; y <= 17; y++) setG(75, y, 54);
   for (let x = 57; x <= 92; x++) {
     setD(x, 2, 37);
     if (x < 73 || x > 77) setD(x, 16, 37);
@@ -1185,9 +1810,19 @@ function buildFullOrchardTmx() {
   setG(73, 11, 36);
   setG(77, 11, 36);
   setG(75, 9, 36);
+  // Fairy-ring ferns & toadstools framing West Moss Arch (66,13) & East Fern Clearing (83,12)
+  for (const [fx, fy] of [[63, 12], [69, 12], [81, 11], [86, 11], [72, 6], [78, 6]]) {
+    setD(fx, fy, 63);
+  }
+  setD(72, 17, 17);
+  setD(78, 17, 17);
   fillRect(setC, 60, 4, 30, 10, 11);
 
-  // ZONE 8: Shady Bottoms Campground & Vendor Row
+  // 11. ZONE 8: Shady Bottoms Campground Village, Campfire & Vendor Row Market
+  // Corduroy timber & cobblestone Vendor Row promenade
+  fillRect(setG, 70, 61, 17, 3, 53);
+  fillRect(setG, 77, 72, 10, 4, 53);
+  // Existing core Campground & Vendor Row props
   fillRect(setD, 60, 59, 4, 2, 13);
   setD(61, 61, 14);
   setG(65, 61, 41);
@@ -1206,9 +1841,26 @@ function buildFullOrchardTmx() {
   fillRect(setD, 79, 74, 4, 1, 40);
   setD(84, 74, 39);
   setD(77, 66, 17);
+  // Expanded 1969 Tent Village, Communal Campfire Hearth & Market Festoon Posts!
+  setD(67, 65, 79); // Crackling Communal Campfire Hearth at (1080, 1048) in Campground Commons!
+  setD(65, 65, 65); // Hay bale seat west of campfire
+  setD(69, 65, 82); // Acoustic folk guitar & vinyl crate east of campfire
+  setD(57, 60, 72); setD(58, 60, 73); // Teal A-Frame tent NW
+  setD(57, 74, 74); setD(58, 74, 75); // Saffron Tie-Dye dome tent SW
+  setD(64, 75, 72); setD(65, 75, 73); // Teal A-Frame tent South
+  setD(73, 75, 74); setD(74, 75, 75); // Saffron Tie-Dye dome tent SE
+  setD(70, 59, 81);
+  setD(78, 59, 81);
+  setD(86, 59, 81);
+  setD(78, 73, 81);
+  setD(86, 73, 81);
+  setD(86, 61, 66); // Oak cider barrel stack at east end of Vendor Row
 
-  // ZONE 9: The Sorting Machine Arcade Tent
+  // 12. ZONE 9: The Sorting Machine Arcade Tent & Carnival Boardwalk
   fillRect(setG, 99, 59, 20, 18, 42);
+  // Cedar boardwalk entrance plazas at West (x:96..98, y:67..70) & South (x:106..110, y:77..79) doors
+  fillRect(setG, 96, 67, 3, 4, 55);
+  fillRect(setG, 106, 77, 5, 3, 55);
   for (let x = 99; x < 119; x++) {
     setD(x, 59, 45);
     if (x < 106 || x > 110) setD(x, 76, 45);
@@ -1221,14 +1873,45 @@ function buildFullOrchardTmx() {
   setD(106, 62, 43);
   fillRect(setG, 111, 63, 5, 2, 44);
   setD(113, 61, 46);
+  setD(98, 66, 81);
+  setD(98, 71, 81);
+  setD(105, 77, 81);
+  setD(111, 77, 81);
 
-  const treeSpots = [
-    [25, 48], [28, 52], [48, 48], [52, 52], [55, 30], [55, 60],
-    [93, 26], [93, 48], [30, 62], [46, 62], [12, 48], [114, 44],
+  // 13. Structured Heritage Walnut Orchard Groves across previously bare interstitial fields!
+  // Each orchard tree has a 3D walnut trunk (16), lush paired walnut canopy boughs (70, 71, 11),
+  // golden fallen leaves (51), and occasional wicker harvest baskets (67) & wildflowers!
+  const orchardGroves = [
+    // West Orchard Grove (between Velvet Canopy & Urbano Canopy, x:6..28, y:44..57)
+    [8, 46], [13, 46], [21, 46], [26, 46],
+    [10, 51], [23, 51], [28, 52],
+    [8, 56], [13, 56], [21, 56], [26, 56],
+    // Central Heart-of-the-Farm Walnut Orchard (east of Main Promenade, x:44..58, y:44..64)
+    [45, 45], [50, 45], [55, 45],
+    [47, 50], [52, 50], [57, 50],
+    [45, 56], [50, 56], [55, 56],
+    [47, 62], [52, 62],
+    // West Promenade Orchard Row (west of Main Promenade, x:22..33, y:45..64)
+    [25, 48], [31, 46], [31, 52], [30, 62],
+    // North-East Ridge Grove (between Mellow Meadow, Willow Creek & Andromeda, x:95..102, y:43..55)
+    [96, 45], [100, 45], [97, 51], [101, 51], [114, 44], [118, 48], [114, 53],
+    // South Entrance & Outer Pastures (flanking Front Gate & Campground south)
+    [12, 84], [18, 86], [29, 82], [46, 82], [54, 84], [62, 85], [72, 85], [82, 84], [102, 84], [112, 84],
   ];
-  for (const [tx, ty] of treeSpots) {
+  for (let i = 0; i < orchardGroves.length; i++) {
+    const [tx, ty] = orchardGroves[i];
+    if (decor[ty * W + tx] !== 0) continue;
+    setG(tx, ty, 51);
+    setG(tx - 1, ty, 51);
     setD(tx, ty, 16);
+    setC(tx - 1, ty - 1, 70);
     setC(tx, ty - 1, 11);
+    setC(tx + 1, ty - 1, 71);
+    if (i % 4 === 0 && decor[ty * W + (tx + 1)] === 0) {
+      setD(tx + 1, ty, 67); // harvest walnut basket beside every 4th tree!
+    } else if (i % 3 === 1 && decor[(ty + 1) * W + tx] === 0) {
+      setD(tx, ty + 1, i % 2 === 0 ? 61 : 62);
+    }
   }
 
   function layerToCsv(arr) {
@@ -1304,6 +1987,66 @@ ${layerToCsv(canopy)}
 </map>
 `;
   fs.writeFileSync(path.join(ROOT, 'assets/tiles/free_orchard_full.tmx'), tmx, 'utf8');
+
+  // Automated Generation-Time Walkability & Test Invariant Verification!
+  if (tileMetadata.length > 0) {
+    const collidableIds = new Set(tileMetadata.filter((m) => m.collidable).map((m) => m.id));
+    const isBlockedTile = (tx, ty) => {
+      if (tx < 0 || ty < 0 || tx >= W || ty >= H) return true;
+      const gId = ground[ty * W + tx] - 1;
+      const dId = decor[ty * W + tx] - 1;
+      return collidableIds.has(gId) || collidableIds.has(dId);
+    };
+    const assertPointOpen = (label, wx, wy) => {
+      const tx = Math.floor(wx / 16);
+      const ty = Math.floor(wy / 16);
+      if (isBlockedTile(tx, ty)) {
+        throw new Error(`[Map Verifier] Blocked gameplay coordinate ${label} at (${wx}, ${wy}) -> tile (${tx}, ${ty})!`);
+      }
+    };
+
+    const npcsPath = path.join(ROOT, 'assets/data/npcs_and_quests.json');
+    if (fs.existsSync(npcsPath)) {
+      const data = JSON.parse(fs.readFileSync(npcsPath, 'utf8'));
+      for (const npc of data.npcs ?? []) {
+        assertPointOpen(`NPC ${npc.id}`, npc.spawnX, npc.spawnY);
+        for (const [wx, wy] of npc.waypoints ?? []) {
+          assertPointOpen(`NPC ${npc.id} waypoint`, wx, wy);
+        }
+      }
+      for (const q of data.quests ?? []) {
+        assertPointOpen(`Quest ${q.id}`, q.targetX, q.targetY);
+      }
+      for (const t of data.totems ?? []) {
+        assertPointOpen(`Totem ${t.id}`, t.x, t.y);
+      }
+    }
+
+    const criticalWorldSpots = [
+      ['player_spawn', 608, 1344],
+      ['lineup_kiosk', 536, 1320],
+      ['cultivar_booth', 680, 1320],
+      ['cultivar_chandler', 520, 1248],
+      ['cultivar_hartley', 744, 520],
+      ['cultivar_howard', 472, 488],
+      ['cultivar_tulare', 312, 472],
+      ['cultivar_franquette', 1032, 520],
+      ['cultivar_hindsii', 1272, 512],
+      ['cultivar_wen_wan', 336, 1088],
+      ['cultivar_red_livermore', 928, 1032],
+      ['cultivar_serr', 1648, 544],
+      ['cultivar_heartnut', 1424, 920],
+      ['cultivar_butternut', 1520, 1120],
+      ['blueberry_basket', 1096, 496],
+      ['fog_entrance', 1200, 248],
+      ['fog_wp_west', 1064, 212],
+      ['fog_wp_east', 1336, 196],
+      ['fog_sanctum', 1200, 144],
+    ];
+    for (const [label, wx, wy] of criticalWorldSpots) {
+      assertPointOpen(label, wx, wy);
+    }
+  }
 }
 
 // ============================================================================
@@ -2500,8 +3243,15 @@ function buildTotemsAndProps() {
   blanket.save(path.join(ROOT, 'assets/images/props/picnic_blanket.png'));
 }
 
-buildTilesetAndTsx();
-buildFullOrchardTmx();
-buildCharacters();
-buildTotemsAndProps();
-console.log('[Walnutstock 3D Art Pipeline] Generated refined 2.5D tileset, 128x96 TMX, 28 3D-lit character sheets/portraits, and 8 sculpted 3D totems.');
+const worldOnly = process.argv.includes('--world-only');
+const tileMeta = buildTilesetAndTsx();
+buildFullOrchardTmx(tileMeta);
+if (!worldOnly) {
+  buildCharacters();
+  buildTotemsAndProps();
+}
+console.log(
+  worldOnly
+    ? '[Walnutstock 3D Art Pipeline] Generated expanded 84-tile 2.5D tileset & verified 128x96 redesigned TMX.'
+    : '[Walnutstock 3D Art Pipeline] Generated expanded 84-tile 2.5D tileset, 128x96 TMX, character sheets/portraits, and 8 sculpted 3D totems.',
+);
