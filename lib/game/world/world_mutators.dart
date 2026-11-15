@@ -6,9 +6,32 @@ class WorldMutators {
   final OrchardMapData map;
 
   bool _fencesApplied = false;
+  bool _centerArchOpened = false;
   bool _mossApplied = false;
   bool _mossEnhancedApplied = false;
   bool? _mudApplied;
+
+  /// Opens the 4-tile center Orchard Gate archway (`tx: 36..39, ty: 74`) so players
+  /// can walk straight north from the Orchard Gate into the festival immediately,
+  /// while keeping flanking perimeter fences intact until Track 2's fence drop.
+  bool openCenterGateArchway() {
+    if (_centerArchOpened || _fencesApplied) return false;
+    final openFenceGid = map.firstGid + 9;
+    var mutated = false;
+    const gateRow = 74;
+    if (gateRow < map.height) {
+      for (var tx = 36; tx <= 39 && tx < map.width; tx++) {
+        final idx = gateRow * map.width + tx;
+        final def = map.defForGid(map.decorGids[idx]);
+        if (def != null && def.fenceGate) {
+          map.decorGids[idx] = openFenceGid;
+          mutated = true;
+        }
+      }
+    }
+    _centerArchOpened = true;
+    return mutated;
+  }
 
   /// Topples Front Gate wooden fences (`fence_gate=true` -> open planks `id 9`).
   bool applyFenceDrop() {

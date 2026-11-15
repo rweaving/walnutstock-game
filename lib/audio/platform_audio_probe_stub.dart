@@ -1,5 +1,13 @@
 import 'dart:typed_data';
 
+void reportWebBootStage(double fraction, [String? message]) {}
+
+void markWebWorldReady() {}
+
+bool isWebTicketLoaderActive() => false;
+
+void registerWebTicketTearCallback(void Function() onTorn) {}
+
 Future<void> ensureWebAudioUnlockedAndReady() async {}
 
 Future<String> detectPreferredTrackExtension() async => 'ogg';

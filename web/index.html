@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <base href="$FLUTTER_BASE_HREF">
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#1c140d">
+  <meta name="theme-color" content="#18101e">
   <meta name="description" content="Walnutstock: Three Days of Peace, Shells &amp; Music — 2D Top-Down Festival Exploration RPG">
   <meta property="og:title" content="Walnutstock — Three Days of Peace, Shells &amp; Music">
   <meta property="og:description" content="Explore 5 live concert stages, 30 original sets, 11 walnut cultivars, and Woodstock '69 orchard festivities.">
@@ -19,385 +19,659 @@
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
   <link rel="icon" type="image/png" href="favicon.png"/>
 
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Shrikhand&display=swap" rel="stylesheet">
+
   <title>Walnutstock — Three Days of Peace, Shells &amp; Music</title>
   <link rel="manifest" href="manifest.json">
   <style>
+    :root {
+      --wl-cream: #f7e6c4;
+      --wl-gold: #ffd166;
+      --wl-amber: #ff9f1c;
+      --wl-coral: #ff006e;
+      --wl-mint: #06d6a0;
+      --wl-ink: #221309;
+    }
+
     html, body {
       margin: 0;
       padding: 0;
       width: 100%;
       height: 100%;
-      background-color: #1c140d;
-      color: #f4e3c1;
+      background-color: #161018;
+      color: var(--wl-cream);
       overflow: hidden;
-      font-family: Georgia, 'Times New Roman', serif;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       -webkit-tap-highlight-color: transparent;
       touch-action: none;
     }
 
+    /* Full-bleed 1969 screen-printed concert poster & perforated gate ticket */
     #walnut-loader {
       position: fixed;
       inset: 0;
+      width: 100%;
+      height: 100vh;
+      height: 100dvh;
       display: flex;
-      align-items: center;
-      justify-content: center;
-      background:
-        radial-gradient(circle at 22% 18%, rgba(255, 0, 110, 0.16) 0%, transparent 46%),
-        radial-gradient(circle at 78% 22%, rgba(255, 190, 11, 0.18) 0%, transparent 48%),
-        radial-gradient(circle at 50% 55%, #382213 0%, #16100b 76%);
-      color: #f4e3c1;
+      flex-direction: column;
+      justify-content: space-between;
       z-index: 9999;
-      transition: opacity 0.38s ease, transform 0.38s ease;
-      padding: env(safe-area-inset-top, 12px) 16px env(safe-area-inset-bottom, 12px);
-      box-sizing: border-box;
+      overflow: hidden;
       user-select: none;
       -webkit-user-select: none;
+      box-sizing: border-box;
     }
 
+    #walnut-loader.wl-tearing {
+      pointer-events: none;
+    }
+
+    /* Upper Poster Half (Zones 1 & 2: Top Poster Header + Unboxed Dusk Stage) */
+    #walnut-poster-upper {
+      position: relative;
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding:
+        calc(env(safe-area-inset-top, 0px) + clamp(14px, 2.8dvh, 28px))
+        clamp(16px, 5vw, 32px)
+        0;
+      background:
+        radial-gradient(circle at 50% 72%, rgba(255, 176, 36, 0.28) 0%, rgba(255, 94, 0, 0.12) 34%, transparent 66%),
+        radial-gradient(circle at 20% 24%, rgba(255, 0, 110, 0.19) 0%, transparent 48%),
+        radial-gradient(circle at 82% 22%, rgba(131, 56, 236, 0.24) 0%, transparent 50%),
+        linear-gradient(180deg, #191129 0%, #2b1832 42%, #442315 80%, #2b170e 100%);
+      box-sizing: border-box;
+      overflow: hidden;
+      transition: transform 0.54s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.48s ease;
+    }
+
+    /* Subtle 1969 screen-print paper grain */
+    #walnut-poster-upper::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.08;
+      background-image: radial-gradient(rgba(255, 244, 214, 0.8) 0.75px, transparent 0.75px);
+      background-size: 6px 6px;
+    }
+
+    #walnut-loader.wl-tearing #walnut-poster-upper {
+      transform: translate3d(0, -22%, 0) scale(1.03);
+      opacity: 0;
+    }
+
+    /* Converging concert stage spotlight beams */
     .wl-beam {
       position: absolute;
-      top: -15%;
-      width: 38vw;
-      max-width: 340px;
-      height: 120%;
+      top: -12%;
+      width: 44vw;
+      max-width: 320px;
+      height: 112%;
       pointer-events: none;
-      opacity: 0.22;
-      filter: blur(18px);
+      opacity: 0.28;
+      filter: blur(16px);
       transform-origin: top center;
     }
     .wl-beam-left {
-      left: 10%;
-      background: linear-gradient(180deg, rgba(255, 190, 11, 0.65), transparent 82%);
-      animation: wl-sway-left 5.2s ease-in-out infinite alternate;
+      left: 4%;
+      background: linear-gradient(180deg, rgba(255, 190, 11, 0.72), rgba(255, 159, 28, 0.18) 62%, transparent 88%);
+      animation: wl-sway-left 4.8s ease-in-out infinite alternate;
     }
     .wl-beam-right {
-      right: 10%;
-      background: linear-gradient(180deg, rgba(255, 0, 110, 0.55), transparent 82%);
-      animation: wl-sway-right 5.8s ease-in-out infinite alternate;
+      right: 4%;
+      background: linear-gradient(180deg, rgba(255, 0, 110, 0.62), rgba(131, 56, 236, 0.18) 62%, transparent 88%);
+      animation: wl-sway-right 5.4s ease-in-out infinite alternate;
+    }
+    .wl-beam-center {
+      left: 50%;
+      width: 34vw;
+      max-width: 240px;
+      margin-left: -17vw;
+      opacity: 0.18;
+      background: linear-gradient(180deg, rgba(6, 214, 160, 0.6), transparent 82%);
+      animation: wl-sway-center 6.2s ease-in-out infinite alternate;
     }
     @keyframes wl-sway-left {
-      from { transform: rotate(-14deg); }
-      to { transform: rotate(10deg); }
+      from { transform: rotate(-18deg); }
+      to { transform: rotate(-5deg); }
     }
     @keyframes wl-sway-right {
-      from { transform: rotate(14deg); }
-      to { transform: rotate(-10deg); }
+      from { transform: rotate(18deg); }
+      to { transform: rotate(5deg); }
+    }
+    @keyframes wl-sway-center {
+      from { transform: rotate(-5deg) scaleX(0.92); }
+      to { transform: rotate(5deg) scaleX(1.08); }
     }
 
+    /* Floating dusk orchard fireflies */
     .wl-firefly {
       position: absolute;
       width: 6px;
       height: 6px;
       border-radius: 50%;
       background: #ffd166;
-      box-shadow: 0 0 10px 3px rgba(255, 209, 102, 0.75);
+      box-shadow: 0 0 10px 3px rgba(255, 209, 102, 0.78);
       pointer-events: none;
-      animation: wl-float 4.4s ease-in-out infinite;
+      animation: wl-float 4.2s ease-in-out infinite;
     }
-    .wl-f1 { top: 18%; left: 16%; animation-delay: 0s; }
-    .wl-f2 { top: 28%; right: 18%; animation-delay: -1.3s; background: #06d6a0; box-shadow: 0 0 10px 3px rgba(6, 214, 160, 0.7); }
-    .wl-f3 { bottom: 22%; left: 20%; animation-delay: -2.4s; }
-    .wl-f4 { bottom: 18%; right: 15%; animation-delay: -0.7s; background: #ff9f1c; }
+    .wl-f1 { top: 22%; left: 12%; animation-delay: 0s; }
+    .wl-f2 { top: 30%; right: 13%; animation-delay: -1.4s; background: #80ffdb; box-shadow: 0 0 10px 3px rgba(128, 255, 219, 0.72); }
+    .wl-f3 { top: 56%; left: 16%; animation-delay: -2.5s; }
+    .wl-f4 { top: 52%; right: 16%; animation-delay: -0.8s; background: #ff9f1c; }
+    .wl-f5 { top: 38%; left: 26%; width: 4px; height: 4px; animation-delay: -3.1s; background: #ccff33; }
+    .wl-f6 { top: 64%; right: 26%; width: 5px; height: 5px; animation-delay: -1.9s; }
     @keyframes wl-float {
-      0%, 100% { transform: translate(0, 0) scale(0.85); opacity: 0.35; }
-      50% { transform: translate(8px, -14px) scale(1.25); opacity: 0.95; }
+      0%, 100% { transform: translate(0, 0) scale(0.82); opacity: 0.32; }
+      50% { transform: translate(9px, -15px) scale(1.28); opacity: 0.96; }
     }
 
-    .wl-card {
+    /* Zone 1: Top Poster Header */
+    .wl-poster-header {
       position: relative;
-      width: min(440px, 100%);
-      max-height: 94vh;
-      max-height: 94dvh;
-      overflow-y: auto;
-      background: linear-gradient(180deg, rgba(46, 29, 17, 0.95) 0%, rgba(26, 17, 11, 0.97) 100%);
-      border: 2px solid #d49a5a;
-      border-radius: 20px;
-      box-shadow:
-        0 18px 48px rgba(0, 0, 0, 0.68),
-        inset 0 0 0 1px rgba(255, 209, 102, 0.22);
-      padding: 18px 20px 16px;
-      box-sizing: border-box;
+      z-index: 2;
       text-align: center;
+      max-width: 460px;
     }
 
-    .wl-pass-ribbon {
+    .wl-pass-pill {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 3px 11px;
+      padding: 4px 13px;
       border-radius: 999px;
-      background: rgba(255, 190, 11, 0.14);
-      border: 1px solid rgba(255, 209, 102, 0.45);
-      color: #ffd166;
-      font-size: 10.5px;
-      font-weight: bold;
-      letter-spacing: 1.6px;
+      background: rgba(255, 209, 102, 0.14);
+      border: 1px solid rgba(255, 209, 102, 0.5);
+      color: var(--wl-gold);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.4px;
       text-transform: uppercase;
-      margin-bottom: 8px;
+      margin-bottom: clamp(6px, 1.2dvh, 12px);
     }
 
     .wl-title {
       margin: 0;
-      font-size: clamp(22px, 5.6vw, 29px);
-      letter-spacing: 2.8px;
-      color: #ffd166;
-      text-shadow: 0 2px 10px rgba(255, 190, 11, 0.32);
+      font-family: 'Shrikhand', cursive;
+      font-weight: 400;
+      font-size: clamp(32px, 9.2vw, 50px);
+      line-height: 1.02;
+      letter-spacing: 1.6px;
+      color: var(--wl-gold);
+      text-shadow:
+        0 3px 0 #7f2b0a,
+        0 6px 22px rgba(255, 159, 28, 0.36);
     }
 
     .wl-subtitle {
-      margin: 3px 0 10px;
-      font-size: 12px;
-      color: #e8cfa4;
-      letter-spacing: 0.6px;
-      opacity: 0.9;
+      margin: clamp(4px, 0.8dvh, 8px) 0 0;
+      font-size: clamp(12px, 3.3vw, 14px);
+      font-weight: 600;
+      color: #f4dfc0;
+      letter-spacing: 0.5px;
+      opacity: 0.94;
     }
 
-    .wl-stage-box {
+    /* Zone 2: Unboxed Center Stage & Groovy Hippie Walnut Mascot */
+    .wl-open-stage {
       position: relative;
-      margin: 4px auto 10px;
-      padding: 10px 12px 8px;
-      border-radius: 16px;
-      background: radial-gradient(circle at 50% 62%, rgba(255, 190, 11, 0.17) 0%, rgba(18, 26, 16, 0.78) 76%);
-      border: 1px solid rgba(212, 154, 90, 0.35);
+      z-index: 2;
+      width: 100%;
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      padding-bottom: clamp(8px, 1.8dvh, 18px);
+    }
+
+    /* Curved wooden concert stage deck silhouette along the dusk horizon */
+    .wl-stage-arch-floor {
+      position: absolute;
+      left: -12%;
+      right: -12%;
+      bottom: -26px;
+      height: clamp(64px, 10dvh, 92px);
+      border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+      background:
+        radial-gradient(ellipse at 50% 8%, rgba(255, 209, 102, 0.34) 0%, transparent 62%),
+        linear-gradient(180deg, #4b2b17 0%, #29160c 58%, #1c0f08 100%);
+      border-top: 2px solid rgba(255, 209, 102, 0.52);
+      box-shadow: 0 -12px 34px rgba(255, 159, 28, 0.22);
+      pointer-events: none;
+    }
+
+    /* Distant orchard silhouette trees flanking the open stage */
+    .wl-orchard-treeline {
+      position: absolute;
+      inset: auto 0 28px 0;
+      height: 64px;
+      pointer-events: none;
+      opacity: 0.45;
+      background:
+        radial-gradient(circle at 8% 100%, #120b08 36px, transparent 37px),
+        radial-gradient(circle at 18% 100%, #170e0a 28px, transparent 29px),
+        radial-gradient(circle at 82% 100%, #170e0a 30px, transparent 31px),
+        radial-gradient(circle at 92% 100%, #120b08 38px, transparent 39px);
+    }
+
+    .wl-mascot-button {
+      position: relative;
+      z-index: 3;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: none;
+      border: 0;
+      padding: 4px 12px 2px;
       cursor: pointer;
       touch-action: manipulation;
-      overflow: hidden;
+      color: inherit;
+      font: inherit;
+      outline: none;
     }
-    .wl-stage-box:active {
-      transform: scale(0.985);
+    .wl-mascot-button:focus-visible .wl-soundcheck-pill {
+      box-shadow: 0 0 0 2px var(--wl-gold);
     }
 
-    .wl-mascot-wrap {
-      display: inline-block;
-      width: 96px;
-      height: 96px;
+    /* 168px-190px on portrait phones (375x667 -> 168px, 390x844 -> 190px) */
+    #walnut-mascot {
+      display: block;
+      width: clamp(168px, 22.5dvh, 190px);
+      height: clamp(168px, 22.5dvh, 190px);
       animation: wl-groove 0.92s ease-in-out infinite alternate;
       transform-origin: 50% 88%;
+      filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.48));
     }
     @keyframes wl-groove {
-      0% { transform: translateY(2px) rotate(-4deg) scale(1.02, 0.97); }
-      100% { transform: translateY(-6px) rotate(4deg) scale(0.98, 1.04); }
+      0% { transform: translateY(2px) rotate(-3.5deg) scale(1.02, 0.98); }
+      100% { transform: translateY(-7px) rotate(3.5deg) scale(0.98, 1.03); }
     }
-    .wl-mascot-wrap.wl-jam-pop {
-      animation: wl-jam-jump 0.46s cubic-bezier(0.22, 1, 0.36, 1);
+    #walnut-mascot.wl-jam-pop {
+      animation: wl-jam-jump 0.44s cubic-bezier(0.22, 1, 0.36, 1);
     }
     @keyframes wl-jam-jump {
       0% { transform: scale(1.12, 0.86) translateY(4px); }
-      45% { transform: scale(0.94, 1.14) translateY(-16px) rotate(9deg); }
-      80% { transform: scale(1.04, 0.96) translateY(-3px) rotate(-5deg); }
+      42% { transform: scale(0.94, 1.14) translateY(-16px) rotate(8deg); }
+      78% { transform: scale(1.04, 0.97) translateY(-3px) rotate(-4deg); }
       100% { transform: scale(1, 1) translateY(0); }
     }
 
-    .wl-eq {
-      display: flex;
-      align-items: flex-end;
-      justify-content: center;
-      gap: 5px;
-      height: 22px;
-      margin: 4px auto 6px;
-    }
-    .wl-eq span {
-      display: block;
-      width: 6px;
-      border-radius: 3px;
-      animation: wl-eq-bounce 0.68s ease-in-out infinite alternate;
-    }
-    .wl-eq span:nth-child(1) { background: #ffbe0b; height: 9px; animation-delay: 0.00s; }
-    .wl-eq span:nth-child(2) { background: #fb5607; height: 18px; animation-delay: -0.18s; }
-    .wl-eq span:nth-child(3) { background: #ff006e; height: 14px; animation-delay: -0.34s; }
-    .wl-eq span:nth-child(4) { background: #06d6a0; height: 21px; animation-delay: -0.09s; }
-    .wl-eq span:nth-child(5) { background: #8338ec; height: 13px; animation-delay: -0.26s; }
-    .wl-eq span:nth-child(6) { background: #3a86ff; height: 19px; animation-delay: -0.41s; }
-    .wl-eq span:nth-child(7) { background: #ffd166; height: 11px; animation-delay: -0.14s; }
-    @keyframes wl-eq-bounce {
-      0% { transform: scaleY(0.35); opacity: 0.72; }
-      100% { transform: scaleY(1.08); opacity: 1; }
-    }
-
-    .wl-tap-row {
-      display: flex;
+    .wl-soundcheck-pill {
+      position: relative;
+      z-index: 3;
+      display: inline-flex;
       align-items: center;
-      justify-content: center;
-      gap: 8px;
-      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 2px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      background: rgba(18, 11, 7, 0.68);
+      border: 1px solid rgba(255, 209, 102, 0.34);
       font-size: 11.5px;
-      color: #ffe6a7;
+      font-weight: 600;
+      color: #ffe8b3;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
     }
 
     .wl-groove-pill {
-      display: inline-block;
-      padding: 2px 8px;
+      display: none;
+      padding: 1px 7px;
       border-radius: 999px;
-      background: rgba(6, 214, 160, 0.18);
-      border: 1px solid rgba(6, 214, 160, 0.55);
+      background: rgba(6, 214, 160, 0.2);
+      border: 1px solid rgba(6, 214, 160, 0.65);
       color: #7bf1a8;
-      font-size: 11px;
-      font-weight: bold;
+      font-size: 10.5px;
+      font-weight: 800;
     }
 
     .wl-note-particle {
       position: absolute;
       pointer-events: none;
-      font-size: 18px;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--wl-gold);
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
       animation: wl-rise 0.95s ease-out forwards;
-      z-index: 4;
+      z-index: 6;
     }
     @keyframes wl-rise {
       0% { transform: translate(-50%, 0) scale(0.75); opacity: 1; }
-      100% { transform: translate(calc(-50% + var(--dx, 0px)), -68px) scale(1.25) rotate(12deg); opacity: 0; }
+      100% { transform: translate(calc(-50% + var(--dx, 0px)), -78px) scale(1.28) rotate(14deg); opacity: 0; }
     }
 
-    .wl-progress-header {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: 8px;
-      margin: 8px 0 5px;
-      font-size: 12px;
+    /* Zone 3: Bottom Thumb-Zone Perforated Ticket Stub (lower ~25-28%) */
+    #walnut-ticket-lower {
+      position: relative;
+      z-index: 4;
+      flex: 0 0 auto;
+      width: 100%;
+      background: linear-gradient(180deg, #24140c 0%, #1d100a 18%, #f3dfb9 18.5%, #e3c188 100%);
+      color: var(--wl-ink);
+      box-sizing: border-box;
+      transform-origin: 18% 0%;
+      transition: transform 0.56s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.48s ease;
     }
+
+    #walnut-loader.wl-tearing #walnut-ticket-lower {
+      transform: translate3d(16px, 112%, 0) rotate(4.2deg);
+      opacity: 0;
+    }
+
+    /* Single-line merged status & festival rumor ticker directly above perforation */
+    .wl-ticker-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 8px clamp(16px, 5vw, 28px) 9px;
+      background: #21120b;
+      color: var(--wl-cream);
+      font-size: 12px;
+      font-weight: 600;
+      box-sizing: border-box;
+    }
+
     #walnut-stage-text {
-      color: #f4e3c1;
-      text-align: left;
+      flex: 1 1 auto;
+      min-width: 0;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-    }
-    #walnut-pct {
-      color: #ffd166;
-      font-weight: bold;
-      font-variant-numeric: tabular-nums;
-      flex-shrink: 0;
+      color: #f6e4c4;
+      transition: opacity 0.2s ease;
     }
 
-    .wl-bar-track {
-      width: 100%;
-      height: 11px;
-      border-radius: 999px;
-      background: rgba(12, 9, 6, 0.82);
-      border: 1px solid rgba(212, 154, 90, 0.42);
-      overflow: hidden;
-      padding: 1px;
-      box-sizing: border-box;
+    #walnut-pct {
+      flex: 0 0 auto;
+      color: var(--wl-gold);
+      font-size: 11.5px;
+      font-weight: 800;
+      letter-spacing: 0.6px;
+      font-variant-numeric: tabular-nums;
     }
+
+    /* Horizontal serrated ticket perforation line with radial-gradient punch-out teeth */
+    .wl-perforation-band {
+      position: relative;
+      width: 100%;
+      height: 18px;
+      background:
+        radial-gradient(circle at 8px 9px, #140b07 4.3px, transparent 4.8px) repeat-x,
+        linear-gradient(180deg, #21120b 0%, #21120b 50%, #f3dfb9 50%, #f3dfb9 100%);
+      background-size: 16px 18px, 100% 100%;
+      overflow: hidden;
+    }
+
+    /* Side semicircular ticket stub punch notches */
+    .wl-perforation-band::before,
+    .wl-perforation-band::after {
+      content: '';
+      position: absolute;
+      top: -3px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #120907;
+      z-index: 3;
+      box-shadow: inset 0 0 0 1.5px rgba(255, 209, 102, 0.32);
+    }
+    .wl-perforation-band::before { left: -12px; }
+    .wl-perforation-band::after { right: -12px; }
+
+    /* Dashed tear rule + animated golden progress across the perforation */
+    .wl-perforation-rule {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      top: 50%;
+      height: 4px;
+      margin-top: -2px;
+      border-radius: 999px;
+      background: repeating-linear-gradient(
+        90deg,
+        rgba(255, 209, 102, 0.26) 0px,
+        rgba(255, 209, 102, 0.26) 8px,
+        transparent 8px,
+        transparent 14px
+      );
+      overflow: hidden;
+      z-index: 2;
+    }
+
     #walnut-bar-fill {
       width: 8%;
       height: 100%;
       border-radius: 999px;
-      background: linear-gradient(90deg, #ff9f1c 0%, #ffd166 48%, #06d6a0 100%);
-      background-size: 200% 100%;
-      animation: wl-shimmer 1.8s linear infinite;
+      background: linear-gradient(90deg, #ff9f1c 0%, #ffd166 52%, #06d6a0 100%);
+      box-shadow: 0 0 12px rgba(255, 209, 102, 0.85);
       transition: width 0.22s ease-out;
     }
-    @keyframes wl-shimmer {
-      0% { background-position: 0% 50%; }
-      100% { background-position: 200% 50%; }
+
+    /* Primary Thumb-Zone Perforated Ticket Stub CTA */
+    .wl-stub-body {
+      padding:
+        10px
+        clamp(16px, 5vw, 28px)
+        calc(env(safe-area-inset-bottom, 0px) + clamp(12px, 2.2dvh, 20px));
+      background:
+        radial-gradient(circle at 85% 20%, rgba(255, 255, 255, 0.28), transparent 52%),
+        linear-gradient(180deg, #f3dfb9 0%, #e1be82 100%);
+      box-sizing: border-box;
     }
 
-    .wl-rumor-box {
-      margin-top: 10px;
-      padding: 8px 10px;
-      border-radius: 11px;
-      background: rgba(255, 243, 214, 0.055);
-      border: 1px dashed rgba(212, 154, 90, 0.35);
-      font-size: 11.5px;
-      line-height: 1.38;
-      color: #e9d8b8;
-      min-height: 32px;
+    .wl-stub-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.1px;
+      text-transform: uppercase;
+      color: #5c3618;
+      margin-bottom: 8px;
+    }
+
+    #walnut-tear-stub {
+      position: relative;
+      width: 100%;
+      min-height: 58px;
+      border-radius: 14px;
+      border: 2px solid #4a2810;
+      background: linear-gradient(180deg, #3a2010 0%, #241309 100%);
+      color: #e8d3b0;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: clamp(12.5px, 3.6vw, 15px);
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: opacity 0.22s ease;
+      gap: 10px;
+      padding: 10px 16px;
+      box-sizing: border-box;
+      cursor: default;
+      touch-action: none;
+      transition: transform 0.16s ease, box-shadow 0.25s ease, background 0.25s ease, border-color 0.25s ease;
     }
 
-    @media (max-height: 460px) {
-      .wl-card { padding: 10px 14px; }
-      .wl-mascot-wrap { width: 64px; height: 64px; }
-      .wl-subtitle { margin-bottom: 5px; }
-      .wl-rumor-box { margin-top: 6px; padding: 5px 8px; min-height: 22px; }
+    #walnut-tear-stub.wl-ready {
+      cursor: pointer;
+      border-color: #1f1006;
+      background: linear-gradient(135deg, #2b160a 0%, #4b240c 52%, #241208 100%);
+      color: var(--wl-gold);
+      box-shadow:
+        0 8px 22px rgba(34, 19, 9, 0.36),
+        0 0 0 2px rgba(255, 209, 102, 0.55);
+      animation: wl-stub-pulse 1.5s ease-in-out infinite;
+    }
+
+    #walnut-tear-stub.wl-ready:active {
+      transform: translateY(2px) scale(0.99);
+    }
+
+    @keyframes wl-stub-pulse {
+      0%, 100% {
+        box-shadow:
+          0 6px 18px rgba(34, 19, 9, 0.34),
+          0 0 0 2px rgba(255, 209, 102, 0.45);
+      }
+      50% {
+        box-shadow:
+          0 10px 26px rgba(255, 159, 28, 0.42),
+          0 0 0 4px rgba(255, 209, 102, 0.88);
+      }
+    }
+
+    .wl-stub-icon {
+      font-size: 16px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    /* Graceful scaling on ultra-short landscape phones */
+    @media (max-height: 580px) {
+      .wl-title { font-size: clamp(24px, 6vw, 34px); }
+      .wl-pass-pill { margin-bottom: 4px; padding: 2px 10px; font-size: 10px; }
+      #walnut-mascot { width: clamp(104px, 24dvh, 148px); height: clamp(104px, 24dvh, 148px); }
+      .wl-stub-meta { display: none; }
+      .wl-stub-body { padding-top: 6px; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); }
+      #walnut-tear-stub { min-height: 48px; }
     }
   </style>
 </head>
 <body>
-  <div id="walnut-loader" role="status" aria-live="polite">
-    <div class="wl-beam wl-beam-left"></div>
-    <div class="wl-beam wl-beam-right"></div>
-    <div class="wl-firefly wl-f1"></div>
-    <div class="wl-firefly wl-f2"></div>
-    <div class="wl-firefly wl-f3"></div>
-    <div class="wl-firefly wl-f4"></div>
+  <div id="walnut-loader" role="region" aria-label="Walnutstock 1969 Gate Pass">
+    <!-- Upper Screen-Printed 1969 Concert Poster -->
+    <div id="walnut-poster-upper">
+      <div class="wl-beam wl-beam-left"></div>
+      <div class="wl-beam wl-beam-center"></div>
+      <div class="wl-beam wl-beam-right"></div>
+      <div class="wl-firefly wl-f1"></div>
+      <div class="wl-firefly wl-f2"></div>
+      <div class="wl-firefly wl-f3"></div>
+      <div class="wl-firefly wl-f4"></div>
+      <div class="wl-firefly wl-f5"></div>
+      <div class="wl-firefly wl-f6"></div>
 
-    <div class="wl-card">
-      <div class="wl-pass-ribbon">✌️ August 1969 · Free Orchard Gate Pass</div>
-      <h1 class="wl-title">WALNUTSTOCK</h1>
-      <p class="wl-subtitle">Three Days of Peace, Shells &amp; Music</p>
+      <!-- Zone 1: Top Poster Header -->
+      <header class="wl-poster-header">
+        <div class="wl-pass-pill">✌️ August 1969 · Free Orchard Gate Pass</div>
+        <h1 class="wl-title">WALNUTSTOCK</h1>
+        <p class="wl-subtitle">Three Days of Peace, Shells &amp; Music</p>
+      </header>
 
-      <div class="wl-stage-box" id="walnut-jam-pad" role="button" tabindex="0" aria-label="Tap the hippie walnut to soundcheck">
-        <div class="wl-mascot-wrap" id="walnut-mascot">
-          <svg viewBox="0 0 120 120" width="100%" height="100%" aria-hidden="true">
-            <!-- Ground stage shadow -->
-            <ellipse cx="60" cy="111" rx="28" ry="6" fill="rgba(0,0,0,0.42)"/>
-            <!-- Little festival boots -->
-            <rect x="43" y="96" width="11" height="12" rx="5" fill="#5c3419"/>
-            <rect x="66" y="96" width="11" height="12" rx="5" fill="#5c3419"/>
-            <!--Grooving arms waving peace -->
-            <path d="M29 66 Q14 54 19 41" fill="none" stroke="#8d582c" stroke-width="6" stroke-linecap="round"/>
-            <path d="M91 66 Q106 52 101 39" fill="none" stroke="#8d582c" stroke-width="6" stroke-linecap="round"/>
-            <!-- Textured 1969 Walnut Shell Body -->
-            <ellipse cx="60" cy="62" rx="34" ry="38" fill="#b5763c" stroke="#5a3414" stroke-width="3.5"/>
-            <ellipse cx="60" cy="62" rx="27" ry="32" fill="#c98a4b" opacity="0.72"/>
-            <!-- Walnut shell center seam & ridges -->
-            <path d="M60 25 C56 46, 64 76, 60 99" fill="none" stroke="#6e4119" stroke-width="2.4" stroke-dasharray="5 4"/>
-            <path d="M37 48 Q46 54 39 66" fill="none" stroke="#7c4a1e" stroke-width="2" stroke-linecap="round" opacity="0.65"/>
-            <path d="M83 48 Q74 54 81 66" fill="none" stroke="#7c4a1e" stroke-width="2" stroke-linecap="round" opacity="0.65"/>
-            <!-- Tie-dye headband + Woodstock daisies -->
-            <path d="M28 43 Q60 33 92 43" fill="none" stroke="#ff006e" stroke-width="7" stroke-linecap="round"/>
-            <path d="M30 43 Q60 33 90 43" fill="none" stroke="#ffbe0b" stroke-width="3" stroke-dasharray="7 6" stroke-linecap="round"/>
-            <circle cx="38" cy="40" r="5.5" fill="#fffdf7"/>
-            <circle cx="38" cy="40" r="2.3" fill="#ffbe0b"/>
-            <circle cx="82" cy="40" r="5.5" fill="#fffdf7"/>
-            <circle cx="82" cy="40" r="2.3" fill="#ffbe0b"/>
-            <!-- Rose-tinted round Lennon specs -->
-            <circle cx="47" cy="57" r="9.5" fill="rgba(255, 0, 110, 0.42)" stroke="#ffd166" stroke-width="2.6"/>
-            <circle cx="73" cy="57" r="9.5" fill="rgba(255, 0, 110, 0.42)" stroke="#ffd166" stroke-width="2.6"/>
-            <line x1="56.5" y1="57" x2="63.5" y2="57" stroke="#ffd166" stroke-width="2.4"/>
-            <circle cx="44" cy="54" r="2.2" fill="rgba(255,255,255,0.65)"/>
-            <circle cx="70" cy="54" r="2.2" fill="rgba(255,255,255,0.65)"/>
-            <!-- Happy singing smile -->
-            <path d="M49 72 Q60 82 71 72" fill="none" stroke="#3d210b" stroke-width="3.2" stroke-linecap="round"/>
-            <!-- Peace medallion necklace -->
-            <path d="M44 83 Q60 93 76 83" fill="none" stroke="#ffd166" stroke-width="1.8"/>
-            <circle cx="60" cy="91" r="6.5" fill="#23160c" stroke="#06d6a0" stroke-width="2"/>
-            <line x1="60" y1="85" x2="60" y2="97" stroke="#06d6a0" stroke-width="1.8"/>
-            <line x1="60" y1="91" x2="55.5" y2="95.5" stroke="#06d6a0" stroke-width="1.8"/>
-            <line x1="60" y1="91" x2="64.5" y2="95.5" stroke="#06d6a0" stroke-width="1.8"/>
-          </svg>
-        </div>
+      <!-- Zone 2: Unboxed Open Dusk Stage & Mascot -->
+      <div class="wl-open-stage" id="walnut-jam-pad">
+        <div class="wl-orchard-treeline" aria-hidden="true"></div>
+        <div class="wl-stage-arch-floor" aria-hidden="true"></div>
 
-        <div class="wl-eq" aria-hidden="true">
-          <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
-        </div>
-
-        <div class="wl-tap-row">
-          <span id="walnut-jam-label">🥁 Tap the Walnut to Soundcheck!</span>
-          <span class="wl-groove-pill" id="walnut-groove-badge" style="display:none">Groove 1x</span>
-        </div>
+        <button
+          type="button"
+          class="wl-mascot-button"
+          id="walnut-mascot-trigger"
+          aria-label="Tap the hippie walnut mascot for a 1969 organ soundcheck"
+        >
+          <div id="walnut-mascot">
+            <svg viewBox="0 0 120 120" width="100%" height="100%" aria-hidden="true">
+              <!-- Ground stage spotlight pool -->
+              <ellipse cx="60" cy="111" rx="34" ry="7" fill="rgba(255, 209, 102, 0.22)"/>
+              <ellipse cx="60" cy="111" rx="26" ry="5" fill="rgba(0, 0, 0, 0.45)"/>
+              <!-- Little suede festival boots -->
+              <rect x="42" y="96" width="12" height="13" rx="5.5" fill="#5c3419" stroke="#2c1608" stroke-width="1.5"/>
+              <rect x="66" y="96" width="12" height="13" rx="5.5" fill="#5c3419" stroke="#2c1608" stroke-width="1.5"/>
+              <!-- Grooving arms flashing peace vibes -->
+              <path d="M29 66 Q12 53 18 39" fill="none" stroke="#8d582c" stroke-width="6.2" stroke-linecap="round"/>
+              <path d="M91 66 Q108 51 102 37" fill="none" stroke="#8d582c" stroke-width="6.2" stroke-linecap="round"/>
+              <!-- Textured 1969 Walnut Shell Body -->
+              <ellipse cx="60" cy="62" rx="34" ry="38" fill="#b8773a" stroke="#4d2b10" stroke-width="3.4"/>
+              <ellipse cx="60" cy="61" rx="27" ry="32" fill="#ce8e4e" opacity="0.76"/>
+              <!-- Walnut shell center suture & organic grooves -->
+              <path d="M60 25 C56 46, 64 76, 60 99" fill="none" stroke="#683c16" stroke-width="2.4" stroke-dasharray="5 4"/>
+              <path d="M37 48 Q46 54 39 66" fill="none" stroke="#78461c" stroke-width="2.1" stroke-linecap="round" opacity="0.7"/>
+              <path d="M83 48 Q74 54 81 66" fill="none" stroke="#78461c" stroke-width="2.1" stroke-linecap="round" opacity="0.7"/>
+              <path d="M40 73 Q48 78 43 87" fill="none" stroke="#78461c" stroke-width="1.8" stroke-linecap="round" opacity="0.55"/>
+              <path d="M80 73 Q72 78 77 87" fill="none" stroke="#78461c" stroke-width="1.8" stroke-linecap="round" opacity="0.55"/>
+              <!-- Fringed suede vest lapels -->
+              <path d="M34 69 L44 88 L33 88 Z" fill="#6f3d1b" opacity="0.88"/>
+              <path d="M86 69 L76 88 L87 88 Z" fill="#6f3d1b" opacity="0.88"/>
+              <!-- Tie-dye headband + Woodstock daisies -->
+              <path d="M27 43 Q60 32 93 43" fill="none" stroke="#ff006e" stroke-width="7.2" stroke-linecap="round"/>
+              <path d="M29 43 Q60 32 91 43" fill="none" stroke="#ffbe0b" stroke-width="3.2" stroke-dasharray="7 6" stroke-linecap="round"/>
+              <circle cx="38" cy="40" r="5.6" fill="#fffdf7"/>
+              <circle cx="38" cy="40" r="2.3" fill="#ffbe0b"/>
+              <circle cx="82" cy="40" r="5.6" fill="#fffdf7"/>
+              <circle cx="82" cy="40" r="2.3" fill="#ffbe0b"/>
+              <!-- Rose-tinted round Lennon specs -->
+              <circle cx="47" cy="57" r="9.6" fill="rgba(255, 0, 110, 0.44)" stroke="#ffd166" stroke-width="2.6"/>
+              <circle cx="73" cy="57" r="9.6" fill="rgba(255, 0, 110, 0.44)" stroke="#ffd166" stroke-width="2.6"/>
+              <line x1="56.6" y1="57" x2="63.4" y2="57" stroke="#ffd166" stroke-width="2.4"/>
+              <circle cx="44" cy="54" r="2.3" fill="rgba(255,255,255,0.68)"/>
+              <circle cx="70" cy="54" r="2.3" fill="rgba(255,255,255,0.68)"/>
+              <!-- Joyful singing grin -->
+              <path d="M49 72 Q60 82 71 72" fill="none" stroke="#361c08" stroke-width="3.2" stroke-linecap="round"/>
+              <!-- Peace medallion necklace -->
+              <path d="M44 83 Q60 93 76 83" fill="none" stroke="#ffd166" stroke-width="1.8"/>
+              <circle cx="60" cy="91" r="6.6" fill="#23160c" stroke="#06d6a0" stroke-width="2"/>
+              <line x1="60" y1="84.8" x2="60" y2="97.2" stroke="#06d6a0" stroke-width="1.8"/>
+              <line x1="60" y1="91" x2="55.5" y2="95.5" stroke="#06d6a0" stroke-width="1.8"/>
+              <line x1="60" y1="91" x2="64.5" y2="95.5" stroke="#06d6a0" stroke-width="1.8"/>
+            </svg>
+          </div>
+          <div class="wl-soundcheck-pill">
+            <span id="walnut-jam-label">🎹 Tap Walnut to Soundcheck</span>
+            <span class="wl-groove-pill" id="walnut-groove-badge">1x</span>
+          </div>
+        </button>
       </div>
+    </div>
 
-      <div class="wl-progress-header">
+    <!-- Zone 3: Bottom Thumb-Zone Perforated Ticket Stub -->
+    <div id="walnut-ticket-lower">
+      <!-- Merged single-line loading stage & festival rumor ticker -->
+      <div class="wl-ticker-strip" aria-live="polite">
         <span id="walnut-stage-text">Warming up 1969 Orchard Stage Rig…</span>
         <span id="walnut-pct">8%</span>
       </div>
-      <div class="wl-bar-track">
-        <div id="walnut-bar-fill"></div>
+
+      <!-- Serrated perforation line with animated progress -->
+      <div class="wl-perforation-band" aria-hidden="true">
+        <div class="wl-perforation-rule">
+          <div id="walnut-bar-fill"></div>
+        </div>
       </div>
 
-      <div class="wl-rumor-box" id="walnut-tip">
-        🌻 Stage Rumor: 5 live stages &amp; 30 original sets run simultaneously from dawn to midnight!
+      <!-- Tactile Tear Stub CTA -->
+      <div class="wl-stub-body">
+        <div class="wl-stub-meta">
+          <span>Admit One · No. 081569</span>
+          <span>Max Yasgur-Shell’s Grove</span>
+        </div>
+        <button
+          type="button"
+          id="walnut-tear-stub"
+          aria-disabled="true"
+        >
+          <span class="wl-stub-icon" id="walnut-stub-icon">⏳</span>
+          <span id="walnut-stub-text">Tuning 5 Live Stages…</span>
+        </button>
       </div>
     </div>
   </div>
 
-  <!-- Track WebAudio contexts so user gestures always resume suspended audio & boot SoLoud WASM first -->
+  <!-- Procedural WebAudio '69 Soundcheck, AudioContext Unlocker & Tactile Stub Tear Bridge -->
   <script>
     (function () {
       if ('serviceWorker' in navigator) {
@@ -409,125 +683,7 @@
           .catch(function () {});
       }
 
-      // Interactive 1969 Festival Boot Loader state & progress controller
-      var currentPct = 8;
-      var targetCeiling = 26;
-      var dismissed = false;
-      var grooveCount = 0;
-      var stageEl = document.getElementById('walnut-stage-text');
-      var pctEl = document.getElementById('walnut-pct');
-      var fillEl = document.getElementById('walnut-bar-fill');
-      var tipEl = document.getElementById('walnut-tip');
-      var padEl = document.getElementById('walnut-jam-pad');
-      var mascotEl = document.getElementById('walnut-mascot');
-      var jamLabelEl = document.getElementById('walnut-jam-label');
-      var grooveBadgeEl = document.getElementById('walnut-groove-badge');
-
-      var rumors = [
-        '🌻 Stage Rumor: 5 live stages & 30 original sets run simultaneously from dawn to midnight!',
-        '🎸 Pro Tip: Walk closer to any stage to hear live spatial stereo amps swell in real time.',
-        '🌧️ Weather Report: Afternoon rain on Day 1 turns the South Hill into a playful Mud Slide!',
-        '🫐 Orchard Secret: Visit Creekside on Day 2 afternoon for Electric Purple Blueberries.',
-        '🔦 Nightfall Tip: Collect 9 hidden 3D-printed totems glowing beneath the lantern canopy.',
-        '💿 Backstage Pass: Spin any set on demand at the Vinyl Listening Booth & Pinball Tent!'
-      ];
-      var shoutouts = [
-        'Far out! Amps humming warm!',
-        'Groovy! Bass bins locked in!',
-        'Right on! Lanterns sparkling!',
-        'Cosmic! Crowd swaying together!',
-        'Outta sight! Shells vibrating!'
-      ];
-      var emojis = ['🎵', '✌️', '🌻', '🎸', '✨', '🌰', '🎶'];
-      var rumorIdx = 0;
-
-      function renderProgress() {
-        var rounded = Math.max(1, Math.min(100, Math.round(currentPct)));
-        if (pctEl) pctEl.textContent = rounded + '%';
-        if (fillEl) fillEl.style.width = rounded + '%';
-      }
-
-      window.__walnutSetBootStage = function (fraction, message) {
-        if (dismissed) return;
-        var incoming = Math.max(0, Math.min(0.96, Number(fraction) || 0)) * 100;
-        if (incoming > currentPct) {
-          currentPct = incoming;
-        }
-        targetCeiling = Math.min(94, Math.max(targetCeiling, incoming + 22));
-        if (message && stageEl) {
-          stageEl.textContent = message;
-        }
-        renderProgress();
-      };
-
-      var creepTimer = setInterval(function () {
-        if (dismissed) return;
-        if (currentPct < targetCeiling) {
-          var step = (targetCeiling - currentPct) * 0.075 + 0.28;
-          currentPct = Math.min(targetCeiling, currentPct + step);
-          renderProgress();
-        } else if (currentPct < 94) {
-          currentPct = Math.min(94, currentPct + 0.14);
-          renderProgress();
-        }
-      }, 120);
-
-      var rumorTimer = setInterval(function () {
-        if (dismissed || !tipEl) return;
-        rumorIdx = (rumorIdx + 1) % rumors.length;
-        tipEl.style.opacity = '0.25';
-        setTimeout(function () {
-          if (tipEl && !dismissed) {
-            tipEl.textContent = rumors[rumorIdx];
-            tipEl.style.opacity = '1';
-          }
-        }, 180);
-      }, 2800);
-
-      function triggerSoundcheck(ev) {
-        if (dismissed || !padEl) return;
-        grooveCount += 1;
-        if (mascotEl) {
-          mascotEl.classList.remove('wl-jam-pop');
-          void mascotEl.offsetWidth;
-          mascotEl.classList.add('wl-jam-pop');
-        }
-        if (grooveBadgeEl) {
-          grooveBadgeEl.style.display = 'inline-block';
-          grooveBadgeEl.textContent = 'Groove ' + grooveCount + 'x';
-        }
-        if (jamLabelEl) {
-          jamLabelEl.textContent = '🎶 ' + shoutouts[(grooveCount - 1) % shoutouts.length];
-        }
-        var rect = padEl.getBoundingClientRect();
-        var x = ev && ev.clientX ? ev.clientX - rect.left : rect.width * 0.5;
-        var y = ev && ev.clientY ? ev.clientY - rect.top : rect.height * 0.45;
-        for (var p = 0; p < 3; p++) {
-          var note = document.createElement('span');
-          note.className = 'wl-note-particle';
-          note.textContent = emojis[(grooveCount + p) % emojis.length];
-          note.style.left = Math.max(20, Math.min(rect.width - 20, x + (p - 1) * 18)) + 'px';
-          note.style.top = Math.max(24, Math.min(rect.height - 12, y)) + 'px';
-          note.style.setProperty('--dx', ((Math.random() - 0.5) * 54).toFixed(1) + 'px');
-          padEl.appendChild(note);
-          (function (el) {
-            setTimeout(function () {
-              if (el.parentNode) el.parentNode.removeChild(el);
-            }, 980);
-          })(note);
-        }
-      }
-
-      if (padEl) {
-        padEl.addEventListener('pointerdown', triggerSoundcheck);
-        padEl.addEventListener('keydown', function (e) {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            triggerSoundcheck(null);
-          }
-        });
-      }
-
+      // 1. Track every AudioContext (including SoLoud / miniaudio & our soundcheck synth)
       var trackedContexts = [];
       window.__walnutAudioContexts = trackedContexts;
       var NativeAC = window.AudioContext || window.webkitAudioContext;
@@ -587,16 +743,9 @@
         return Boolean(m && typeof m === 'object' && typeof m._isInited === 'function');
       };
 
-      var events = [
-        'pointerdown',
-        'pointerup',
-        'mouseup',
-        'touchend',
-        'click',
-        'keydown',
-      ];
-      for (var e = 0; e < events.length; e++) {
-        window.addEventListener(events[e], window.walnutResumeAudioContexts, {
+      var unlockEvents = ['pointerdown', 'pointerup', 'mouseup', 'touchend', 'click', 'keydown'];
+      for (var e = 0; e < unlockEvents.length; e++) {
+        window.addEventListener(unlockEvents[e], window.walnutResumeAudioContexts, {
           capture: true,
           passive: true,
         });
@@ -607,29 +756,426 @@
         }
       });
 
-      function dismissLoader() {
-        if (dismissed) return;
-        dismissed = true;
-        clearInterval(creepTimer);
-        clearInterval(rumorTimer);
-        currentPct = 100;
-        renderProgress();
-        if (stageEl) {
-          stageEl.textContent = 'Gates Open — Peace, Shells & Music! ✌️';
+      // 2. Zero-Download Procedural 1969 Combo-Organ + Fuzz-Bass Soundcheck & Paper-Rip Synth
+      var synthCtx = null;
+      var pentatonicScaleHz = [164.81, 196.00, 220.00, 246.94, 293.66, 329.63, 392.00, 440.00];
+
+      function ensureSynthContext() {
+        try {
+          var AC = window.AudioContext || window.webkitAudioContext;
+          if (!AC) return null;
+          if (!synthCtx) {
+            synthCtx = new AC();
+          }
+          if (synthCtx.state === 'suspended' || synthCtx.state === 'interrupted') {
+            var rp = synthCtx.resume();
+            if (rp && typeof rp.catch === 'function') rp.catch(function () {});
+          }
+          return synthCtx;
+        } catch (_) {
+          return null;
         }
-        var el = document.getElementById('walnut-loader');
-        if (!el) return;
+      }
+
+      function playOrganAndFuzzBassNote(stepIndex) {
+        var ctx = ensureSynthContext();
+        if (!ctx) return;
+        try {
+          var now = ctx.currentTime;
+          var rootHz = pentatonicScaleHz[stepIndex % pentatonicScaleHz.length];
+
+          // Warm '69 Vox/Farfisa combo-organ drawbars (8', 4', 2-2/3' fifth)
+          var organFilter = ctx.createBiquadFilter();
+          organFilter.type = 'lowpass';
+          organFilter.frequency.setValueAtTime(2150, now);
+          organFilter.Q.setValueAtTime(1.1, now);
+
+          var organGain = ctx.createGain();
+          organGain.gain.setValueAtTime(0.0001, now);
+          organGain.gain.linearRampToValueAtTime(0.14, now + 0.014);
+          organGain.gain.exponentialRampToValueAtTime(0.085, now + 0.14);
+          organGain.gain.exponentialRampToValueAtTime(0.0008, now + 0.42);
+
+          organFilter.connect(organGain);
+          organGain.connect(ctx.destination);
+
+          // Subtle 6.2 Hz organ vibrato
+          var vibOsc = ctx.createOscillator();
+          var vibGain = ctx.createGain();
+          vibOsc.frequency.setValueAtTime(6.2, now);
+          vibGain.gain.setValueAtTime(2.6, now);
+          vibOsc.connect(vibGain);
+          vibOsc.start(now);
+          vibOsc.stop(now + 0.44);
+
+          var ratios = [1.0, 2.0, 1.498];
+          var types = ['triangle', 'sine', 'sawtooth'];
+          var levels = [0.55, 0.30, 0.14];
+          for (var i = 0; i < ratios.length; i++) {
+            var osc = ctx.createOscillator();
+            var partGain = ctx.createGain();
+            osc.type = types[i];
+            osc.frequency.setValueAtTime(rootHz * ratios[i], now);
+            vibGain.connect(osc.frequency);
+            partGain.gain.setValueAtTime(levels[i], now);
+            osc.connect(partGain);
+            partGain.connect(organFilter);
+            osc.start(now);
+            osc.stop(now + 0.44);
+          }
+
+          // Warm '69 Fuzz-Bass sub-octave pluck
+          var bassOsc = ctx.createOscillator();
+          var bassFilter = ctx.createBiquadFilter();
+          var bassGain = ctx.createGain();
+          bassOsc.type = 'sawtooth';
+          bassOsc.frequency.setValueAtTime(rootHz * 0.5, now);
+          bassFilter.type = 'lowpass';
+          bassFilter.frequency.setValueAtTime(580, now);
+          bassFilter.frequency.exponentialRampToValueAtTime(210, now + 0.28);
+          bassGain.gain.setValueAtTime(0.0001, now);
+          bassGain.gain.linearRampToValueAtTime(0.13, now + 0.01);
+          bassGain.gain.exponentialRampToValueAtTime(0.0008, now + 0.30);
+          bassOsc.connect(bassFilter);
+          bassFilter.connect(bassGain);
+          bassGain.connect(ctx.destination);
+          bassOsc.start(now);
+          bassOsc.stop(now + 0.32);
+        } catch (_) {}
+      }
+
+      function playTicketTearAndTubeSwell() {
+        var ctx = ensureSynthContext();
+        if (!ctx) return;
+        try {
+          var now = ctx.currentTime;
+
+          // 1. Crisp perforated cardstock paper-rip (bandpass noise burst w/ tooth ratchet)
+          var ripDur = 0.26;
+          var sampleCount = Math.max(1, Math.floor(ctx.sampleRate * ripDur));
+          var noiseBuf = ctx.createBuffer(1, sampleCount, ctx.sampleRate);
+          var ch = noiseBuf.getChannelData(0);
+          for (var s = 0; s < sampleCount; s++) {
+            var t = s / sampleCount;
+            var tooth = 0.55 + 0.45 * Math.sin(t * Math.PI * 34);
+            ch[s] = (Math.random() * 2 - 1) * tooth * (1 - t * 0.45);
+          }
+          var noiseSrc = ctx.createBufferSource();
+          noiseSrc.buffer = noiseBuf;
+
+          var ripFilter = ctx.createBiquadFilter();
+          ripFilter.type = 'bandpass';
+          ripFilter.frequency.setValueAtTime(2400, now);
+          ripFilter.frequency.exponentialRampToValueAtTime(780, now + ripDur);
+          ripFilter.Q.setValueAtTime(1.4, now);
+
+          var ripGain = ctx.createGain();
+          ripGain.gain.setValueAtTime(0.001, now);
+          ripGain.gain.linearRampToValueAtTime(0.22, now + 0.025);
+          ripGain.gain.exponentialRampToValueAtTime(0.001, now + ripDur);
+
+          noiseSrc.connect(ripFilter);
+          ripFilter.connect(ripGain);
+          ripGain.connect(ctx.destination);
+          noiseSrc.start(now);
+          noiseSrc.stop(now + ripDur + 0.02);
+
+          // 2. Warm 1969 Tube-Amp G6/9 Dusk Chord Swell
+          var swellChordHz = [98.00, 146.83, 246.94, 329.63, 440.00];
+          var ampFilter = ctx.createBiquadFilter();
+          ampFilter.type = 'lowpass';
+          ampFilter.frequency.setValueAtTime(620, now + 0.04);
+          ampFilter.frequency.exponentialRampToValueAtTime(2400, now + 0.42);
+          ampFilter.frequency.exponentialRampToValueAtTime(1100, now + 1.25);
+
+          var ampGain = ctx.createGain();
+          ampGain.gain.setValueAtTime(0.0001, now + 0.04);
+          ampGain.gain.linearRampToValueAtTime(0.16, now + 0.28);
+          ampGain.gain.exponentialRampToValueAtTime(0.0008, now + 1.28);
+
+          ampFilter.connect(ampGain);
+          ampGain.connect(ctx.destination);
+
+          for (var c = 0; c < swellChordHz.length; c++) {
+            var osc = ctx.createOscillator();
+            var voiceGain = ctx.createGain();
+            osc.type = c < 2 ? 'sawtooth' : 'triangle';
+            osc.frequency.setValueAtTime(swellChordHz[c], now + 0.04);
+            osc.detune.setValueAtTime((c - 2) * 3.5, now + 0.04);
+            voiceGain.gain.setValueAtTime(c === 0 ? 0.28 : 0.18, now + 0.04);
+            osc.connect(voiceGain);
+            voiceGain.connect(ampFilter);
+            osc.start(now + 0.04);
+            osc.stop(now + 1.32);
+          }
+        } catch (_) {}
+      }
+
+      // 3. Single-Line Ticker, Perforation Progress & Tactile Stub Tear State
+      var currentPct = 8;
+      var targetCeiling = 26;
+      var worldReady = false;
+      var stubTorn = false;
+      var grooveCount = 0;
+      var dartTearCallbacks = [];
+      var latestBootMessage = 'Warming up 1969 Orchard Stage Rig…';
+      var showingRumor = false;
+      var rumorIdx = 0;
+
+      var loaderEl = document.getElementById('walnut-loader');
+      var stageEl = document.getElementById('walnut-stage-text');
+      var pctEl = document.getElementById('walnut-pct');
+      var fillEl = document.getElementById('walnut-bar-fill');
+      var padEl = document.getElementById('walnut-jam-pad');
+      var mascotBtnEl = document.getElementById('walnut-mascot-trigger');
+      var mascotEl = document.getElementById('walnut-mascot');
+      var jamLabelEl = document.getElementById('walnut-jam-label');
+      var grooveBadgeEl = document.getElementById('walnut-groove-badge');
+      var tearStubEl = document.getElementById('walnut-tear-stub');
+      var stubIconEl = document.getElementById('walnut-stub-icon');
+      var stubTextEl = document.getElementById('walnut-stub-text');
+
+      var rumors = [
+        '🌻 5 live stages & 30 original sets run simultaneously till midnight',
+        '🎸 Walk through the Orchard Gate to hear muffled amps bloom clear',
+        '🌰 Discover all 11 heritage walnut cultivars across the grove',
+        '🌧️ Afternoon rain on Day 1 turns the South Meadow into a Mud Slide',
+        '🔦 Collect 9 glowing 3D-printed totems beneath the dusk lanterns'
+      ];
+      var shoutouts = [
+        'Far out! Combo organ warm!',
+        'Groovy! Fuzz-bass locked in!',
+        'Right on! Tube amps glowing!',
+        'Cosmic! Shells resonating!',
+        'Outta sight! Ready to groove!'
+      ];
+      var noteGlyphs = ['♪', '♫', '♬', '✌️', '✨'];
+
+      function renderProgress() {
+        var rounded = worldReady ? 100 : Math.max(1, Math.min(99, Math.round(currentPct)));
+        if (pctEl) pctEl.textContent = worldReady ? 'READY' : rounded + '%';
+        if (fillEl) fillEl.style.width = rounded + '%';
+      }
+
+      function setTickerText(text) {
+        if (!stageEl || stubTorn) return;
+        stageEl.style.opacity = '0.3';
         setTimeout(function () {
-          el.style.opacity = '0';
-          el.style.transform = 'scale(1.02)';
-          el.style.pointerEvents = 'none';
-          setTimeout(function () {
-            if (el.parentNode) el.parentNode.removeChild(el);
-          }, 400);
+          if (stageEl && !stubTorn) {
+            stageEl.textContent = text;
+            stageEl.style.opacity = '1';
+          }
         }, 120);
       }
 
-      window.addEventListener('flutter-first-frame', dismissLoader, { once: true });
+      window.__walnutSetBootStage = function (fraction, message) {
+        if (stubTorn || worldReady) return;
+        var incoming = Math.max(0, Math.min(0.98, Number(fraction) || 0)) * 100;
+        if (incoming > currentPct) {
+          currentPct = incoming;
+        }
+        targetCeiling = Math.min(96, Math.max(targetCeiling, incoming + 18));
+        if (message) {
+          latestBootMessage = message;
+          showingRumor = false;
+          if (stageEl) stageEl.textContent = message;
+        }
+        renderProgress();
+      };
+
+      window.__walnutMarkWorldReady = function () {
+        if (stubTorn || worldReady) return;
+        worldReady = true;
+        currentPct = 100;
+        renderProgress();
+        if (stageEl) {
+          stageEl.textContent = '✨ Orchard Gate Open at Dusk · Live Music Ahead';
+          stageEl.style.opacity = '1';
+        }
+        if (tearStubEl) {
+          tearStubEl.classList.add('wl-ready');
+          tearStubEl.setAttribute('aria-disabled', 'false');
+        }
+        if (stubIconEl) stubIconEl.textContent = '✂️';
+        if (stubTextEl) stubTextEl.textContent = 'Tap or Swipe to Tear Stub & Enter';
+      };
+
+      window.__walnutIsLoaderActive = function () {
+        return !stubTorn && Boolean(document.getElementById('walnut-loader'));
+      };
+
+      window.__walnutRegisterTearCallback = function (cb) {
+        if (typeof cb !== 'function') return;
+        if (stubTorn) {
+          try { cb(); } catch (_) {}
+          return;
+        }
+        dartTearCallbacks.push(cb);
+      };
+
+      var creepTimer = setInterval(function () {
+        if (stubTorn || worldReady) return;
+        if (currentPct < targetCeiling) {
+          var step = (targetCeiling - currentPct) * 0.08 + 0.3;
+          currentPct = Math.min(targetCeiling, currentPct + step);
+          renderProgress();
+        } else if (currentPct < 95) {
+          currentPct = Math.min(95, currentPct + 0.16);
+          renderProgress();
+        }
+      }, 120);
+
+      // Single-line merged ticker alternates smoothly between boot status & 1969 rumors
+      var tickerTimer = setInterval(function () {
+        if (stubTorn) return;
+        if (worldReady) {
+          rumorIdx = (rumorIdx + 1) % rumors.length;
+          setTickerText(rumors[rumorIdx]);
+          return;
+        }
+        showingRumor = !showingRumor;
+        if (showingRumor) {
+          rumorIdx = (rumorIdx + 1) % rumors.length;
+          setTickerText(rumors[rumorIdx]);
+        } else {
+          setTickerText(latestBootMessage);
+        }
+      }, 2600);
+
+      // Mascot soundcheck handler
+      function triggerSoundcheck(ev) {
+        if (stubTorn || !padEl) return;
+        window.walnutResumeAudioContexts();
+        playOrganAndFuzzBassNote(grooveCount);
+        grooveCount += 1;
+
+        if (mascotEl) {
+          mascotEl.classList.remove('wl-jam-pop');
+          void mascotEl.offsetWidth;
+          mascotEl.classList.add('wl-jam-pop');
+        }
+        if (grooveBadgeEl) {
+          grooveBadgeEl.style.display = 'inline-block';
+          grooveBadgeEl.textContent = grooveCount + 'x';
+        }
+        if (jamLabelEl) {
+          jamLabelEl.textContent = '🎶 ' + shoutouts[(grooveCount - 1) % shoutouts.length];
+        }
+
+        var rect = padEl.getBoundingClientRect();
+        var x = ev && typeof ev.clientX === 'number' && ev.clientX > 0
+          ? ev.clientX - rect.left
+          : rect.width * 0.5;
+        var y = ev && typeof ev.clientY === 'number' && ev.clientY > 0
+          ? ev.clientY - rect.top
+          : rect.height * 0.45;
+
+        for (var p = 0; p < 3; p++) {
+          var note = document.createElement('span');
+          note.className = 'wl-note-particle';
+          note.textContent = noteGlyphs[(grooveCount + p) % noteGlyphs.length];
+          note.style.left = Math.max(24, Math.min(rect.width - 24, x + (p - 1) * 22)) + 'px';
+          note.style.top = Math.max(24, Math.min(rect.height - 16, y - 10)) + 'px';
+          note.style.setProperty('--dx', ((Math.random() - 0.5) * 60).toFixed(1) + 'px');
+          padEl.appendChild(note);
+          (function (el) {
+            setTimeout(function () {
+              if (el.parentNode) el.parentNode.removeChild(el);
+            }, 980);
+          })(note);
+        }
+      }
+
+      if (mascotBtnEl) {
+        mascotBtnEl.addEventListener('pointerdown', function (e) {
+          e.stopPropagation();
+          triggerSoundcheck(e);
+        });
+        mascotBtnEl.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            triggerSoundcheck(null);
+          }
+        });
+      }
+
+      // Tactile Tear Stub gesture handler (tap, horizontal tear swipe, or downward pull)
+      function executeTearHandoff() {
+        if (stubTorn || !worldReady) return;
+        stubTorn = true;
+        clearInterval(creepTimer);
+        clearInterval(tickerTimer);
+
+        window.walnutResumeAudioContexts();
+        playTicketTearAndTubeSwell();
+
+        for (var i = 0; i < dartTearCallbacks.length; i++) {
+          try { dartTearCallbacks[i](); } catch (_) {}
+        }
+
+        if (loaderEl) {
+          loaderEl.classList.add('wl-tearing');
+          setTimeout(function () {
+            if (loaderEl && loaderEl.parentNode) {
+              loaderEl.parentNode.removeChild(loaderEl);
+            }
+          }, 580);
+        }
+      }
+
+      if (tearStubEl) {
+        var dragStartX = null;
+        var dragStartY = null;
+
+        tearStubEl.addEventListener('pointerdown', function (e) {
+          window.walnutResumeAudioContexts();
+          if (!worldReady || stubTorn) return;
+          dragStartX = e.clientX;
+          dragStartY = e.clientY;
+        });
+
+        tearStubEl.addEventListener('pointermove', function (e) {
+          if (!worldReady || stubTorn || dragStartX === null) return;
+          var dx = Math.abs(e.clientX - dragStartX);
+          var dy = e.clientY - dragStartY;
+          if (dx > 28 || dy > 22) {
+            dragStartX = null;
+            executeTearHandoff();
+          }
+        });
+
+        tearStubEl.addEventListener('pointerup', function () {
+          if (!worldReady || stubTorn) return;
+          dragStartX = null;
+          executeTearHandoff();
+        });
+
+        tearStubEl.addEventListener('click', function () {
+          if (!worldReady || stubTorn) return;
+          executeTearHandoff();
+        });
+
+        tearStubEl.addEventListener('keydown', function (e) {
+          if (!worldReady || stubTorn) return;
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            executeTearHandoff();
+          }
+        });
+      }
+
+      // Safety fallback: if flutter-first-frame fires and Dart hasn't signaled within 2.5s, mark ready
+      window.addEventListener(
+        'flutter-first-frame',
+        function () {
+          setTimeout(function () {
+            if (!worldReady && !stubTorn) {
+              window.__walnutMarkWorldReady();
+            }
+          }, 2500);
+        },
+        { once: true }
+      );
     })();
   </script>
   <script src="assets/packages/flutter_soloud/web/libflutter_soloud_plugin.js"></script>

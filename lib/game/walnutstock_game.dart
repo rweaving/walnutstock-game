@@ -12,10 +12,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/orchard_loading_screen.dart';
 import '../audio/audio_schedule_controller.dart';
+import '../audio/platform_audio_probe.dart';
 import '../audio/soloud_audio_service.dart';
 import '../data/models.dart';
 import '../state/dialogue_and_overlay_state.dart';
 import '../state/festival_clock.dart';
+import '../state/player_profile.dart';
 import '../state/providers.dart';
 import '../state/world_flags.dart';
 import 'actors/npc_actor.dart';
@@ -28,13 +30,31 @@ import 'world/astar_pathfinder.dart';
 import 'world/concert_light_show.dart';
 import 'world/day_night_atmosphere.dart';
 import 'world/electric_blueberry_experience_component.dart';
+import 'world/festival_crowd_director.dart';
 import 'world/festival_props_component.dart';
 import 'world/mud_experience_component.dart';
+import 'world/orchard_gate_component.dart';
 import 'world/stage_3d_rig_component.dart';
 import 'world/tiled_chunk_renderer.dart';
 import 'world/tiled_map_parser.dart';
 import 'world/world_mutators.dart';
 import 'zones/psych_rock_fog_zone.dart';
+
+class WorldContextPrompt {
+  const WorldContextPrompt({
+    required this.id,
+    required this.label,
+    required this.icon,
+    required this.worldAnchor,
+    required this.screenAnchor,
+  });
+
+  final String id;
+  final String label;
+  final String icon;
+  final ui.Offset worldAnchor;
+  final ui.Offset screenAnchor;
+}
 
 class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
   WalnutstockGame({
@@ -61,6 +81,8 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
   final ShaderPostProcessor _shaders = ShaderPostProcessor();
   final ValueNotifier<OrchardLoadProgress> loadProgress =
       ValueNotifier<OrchardLoadProgress>(OrchardLoadProgress.initial);
+  final ValueNotifier<WorldContextPrompt?> worldContextPrompt =
+      ValueNotifier<WorldContextPrompt?>(null);
   bool _isRemoved = false;
 
   TiledChunkLayerComponent? _groundDecorLayer;
@@ -69,6 +91,9 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
   MudExperienceController? _mudExperience;
   ElectricBlueberryExperienceController? _blueberryExperience;
   FestivalPropsComponent? _festivalProps;
+  FestivalCrowdDirector? _crowdDirector;
+  OrchardGatePropsComponent? _orchardGateProps;
+  OrchardGateOverheadArchComponent? _orchardGateArch;
   PlayerWalnut? player;
   PsychRockFogZone? _fogZone;
   final List<NpcActor> _npcActors = [];
@@ -84,6 +109,9 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
   double _autosaveTimer = 0.0;
   double _baseViewportZoom = 1.0;
   String _loadedCultivarId = '';
+  String? _lastAnnouncedTrackId;
+  bool _seededInitialTrackAnnouncement = false;
+  ui.Offset? _pendingAutoInteractTarget;
   bool _day1RainRampToastShown = false;
   bool _day1MudPartyToastShown = false;
   bool _day2BlueberriesToastShown = false;
@@ -93,6 +121,7 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
   ElectricBlueberryExperienceController? get blueberryExperience =>
       _blueberryExperience;
   FestivalPropsComponent? get festivalProps => _festivalProps;
+  FestivalCrowdDirector? get crowdDirector => _crowdDirector;
   double get blueberryVisualBlend => _blueberryVisualBlend;
 
   NpcActor? npcActorById(String id) {
@@ -125,6 +154,47 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
       return ui.Offset(p.position.x, p.position.y);
     }
     return const ui.Offset(608.0, 368.0);
+  }
+
+  /// Projects a 2D world point into canvas/screen coordinates for diegetic world badges & bubbles.
+  ui.Offset? worldToScreen(ui.Offset worldPt) {
+    if (size.x <= 1.0 || size.y <= 1.0) return null;
+    final global = camera.localToGlobal(Vector2(worldPt.dx, worldPt.dy));
+    if (!global.x.isFinite || !global.y.isFinite) return null;
+    return ui.Offset(global.x, global.y);
+  }
+
+  /// Smoothly computes outer-gate proximity (`1.0` south of the arch -> `0.0` north inside the orchard).
+  double get outerGateApproachFactor {
+    final p = player;
+    if (p == null) return 0.0;
+    final horiz = (1.0 - ((p.position.x - 608.0).abs() / 220.0)).clamp(0.0, 1.0);
+    final south = ((p.position.y - 1252.0) / 72.0).clamp(0.0, 1.0);
+    return (horiz * south).clamp(0.0, 1.0);
+  }
+
+  bool get isPlayerNearOrchardGate {
+    final p = player;
+    if (p == null) return false;
+    return p.position.y >= 1228.0 && (p.position.x - 608.0).abs() <= 168.0;
+  }
+
+  void openLineupKiosk() {
+    unawaited(audioService.unlockAndInitialize());
+    player?.clearTapPath();
+    _pendingAutoInteractTarget = null;
+    container
+        .read(uiOverlayProvider.notifier)
+        .openPocketProgram(PocketProgramTab.setlistAndStages);
+  }
+
+  void openCultivarBooth() {
+    unawaited(audioService.unlockAndInitialize());
+    player?.clearTapPath();
+    _pendingAutoInteractTarget = null;
+    container
+        .read(uiOverlayProvider.notifier)
+        .openPocketProgram(PocketProgramTab.cultivarAndMix);
   }
 
   /// Computes an adaptive camera zoom so phones fill 100% of the screen (no
@@ -180,11 +250,15 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
 
   void _reportLoadProgress(int loaded, int total, String label) {
     if (_isRemoved) return;
-    loadProgress.value = OrchardLoadProgress(
+    final progress = OrchardLoadProgress(
       loaded: loaded,
       total: total,
       stageLabel: label,
     );
+    loadProgress.value = progress;
+    // Map Flame asset preload onto the final 78% -> 99% of the HTML perforation bar
+    final webFraction = 0.78 + 0.21 * progress.fraction;
+    reportWebBootStage(webFraction, label);
   }
 
   @override
@@ -242,6 +316,7 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
         );
       }),
     ]);
+    if (_isRemoved) return;
 
     final tilesetImg = loadedByPath[tilesetPath]!;
     _dewImage = loadedByPath[dewPath];
@@ -348,11 +423,31 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
       compassSprite: loadedByPath[compassPath]!,
       picnicBlanketSprite: loadedByPath[blanketPath]!,
     );
+    _crowdDirector = FestivalCrowdDirector(
+      map: mapData,
+      catalog: data.setlist,
+      characterSheets: _characterSheets,
+      picnicBlanketSprite: loadedByPath[blanketPath]!,
+      metricsGetter: () => _dayNightMetrics,
+      viewBoundsGetter: _cameraWorldBounds,
+      timeGetter: () => _shaderClock,
+      onCelebrationBurst: (pos) => _festivalProps?.spawnCelebrationSparks(pos),
+    );
 
-    final profile = container.read(playerProfileProvider);
+    if (_isRemoved) return;
+    late final PlayerProfile profile;
+    try {
+      profile = container.read(playerProfileProvider);
+    } on StateError {
+      return;
+    }
     _loadedCultivarId = profile.cultivarId;
     final initialSheet =
         _characterSheets[profile.cultivarId] ?? _characterSheets.values.first;
+
+    // Open the 4-tile center Orchard Gate archway immediately so players can walk
+    // straight north into the festival from the dusk gate!
+    _mutators.openCenterGateArchway();
 
     // Ensure spawn position is never inside a blocked tile
     var spawnX = profile.savedX;
@@ -369,6 +464,31 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
       metricsGetter: () => _dayNightMetrics,
     );
 
+    final cultivarsById = <String, CultivarSpec>{
+      for (final c in data.cultivars) c.id: c,
+    };
+    _orchardGateProps = OrchardGatePropsComponent(
+      cultivarsById: cultivarsById,
+      discoveredIdsGetter: () =>
+          container.read(playerProfileProvider).discoveredCultivarIds,
+      cameraCenterGetter: _cameraWorldCenter,
+      viewBoundsGetter: _cameraWorldBounds,
+      timeGetter: () => _shaderClock,
+      bassGetter: () => scheduleController.latest.fft.bass,
+      priority: 1295,
+    );
+    _orchardGateArch = OrchardGateOverheadArchComponent(
+      metricsGetter: () => _dayNightMetrics,
+      cameraCenterGetter: _cameraWorldCenter,
+      viewBoundsGetter: _cameraWorldBounds,
+      playerPositionGetter: () => player != null
+          ? ui.Offset(player!.position.x, player!.position.y)
+          : const ui.Offset(608.0, 1344.0),
+      timeGetter: () => _shaderClock,
+      bassGetter: () => scheduleController.latest.fft.bass,
+      priority: 6450,
+    );
+
     await world.add(_groundDecorLayer!);
     await world.add(
       StageDeckRiserComponent(
@@ -382,6 +502,7 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
     );
     await world.add(_blueberryExperience!.groundLayer);
     await world.add(_mudExperience!.groundLayer);
+    await _crowdDirector!.mountIntoWorld(world);
     await world.add(
       _CollectiblesRenderComponent(
         game: this,
@@ -403,8 +524,10 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
     }
 
     await world.add(player!);
+    await world.add(_orchardGateProps!);
     await world.add(_festivalProps!);
     await world.add(_canopyLayer!);
+    await world.add(_orchardGateArch!);
     await world.add(
       StageOverheadTrussComponent(
         liveStagesGetter: () => _performerDirector?.liveStages ?? const {},
@@ -429,7 +552,8 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
         firefliesEnabledGetter: () {
           final clk = container.read(festivalClockProvider);
           final flg = container.read(worldFlagsProvider);
-          return (flg.firefliesActive && clk.isNightOrDusk) ||
+          return outerGateApproachFactor > 0.15 ||
+              (flg.firefliesActive && clk.isNightOrDusk) ||
               clk.effectiveWeather == WeatherPhase.starryFireflies;
         },
         priority: 7500,
@@ -462,20 +586,39 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
       ),
     );
 
+    if (_isRemoved) return;
     _baseViewportZoom = computeAdaptiveBaseZoom(size);
     camera.viewfinder.anchor = Anchor.center;
     camera.viewfinder.zoom = _baseViewportZoom;
     camera.follow(player!, snap: true);
 
     // Sync initial atmosphere, live stage performers, and world mutations
-    final initialClock = container.read(festivalClockProvider);
+    late final FestivalClockState initialClock;
+    late final double initialShaderIntensity;
+    try {
+      initialClock = container.read(festivalClockProvider);
+      initialShaderIntensity = container.read(settingsProvider).shaderIntensity;
+    } on StateError {
+      return;
+    }
     _refreshAtmosphereAndPerformers(
       clock: initialClock,
-      shaderIntensity: container.read(settingsProvider).shaderIntensity,
+      shaderIntensity: initialShaderIntensity,
       bass: 0.0,
       snapPerformers: true,
     );
     _syncWorldMutations();
+    _crowdDirector?.update(
+      dt: 0.016,
+      clock: initialClock,
+      flags: container.read(worldFlagsProvider),
+      liveStages: liveStageVisuals,
+      namedNpcs: _npcActors,
+      playerPos: player!.position,
+      bassLevel: 0.0,
+      nightSparklerWave: false,
+      clockJumped: true,
+    );
 
     // Start rolling-window background track pre-fetching (active + next upcoming sets)
     audioService.cache.startBackgroundPrefetch(
@@ -489,11 +632,13 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
       totalSteps,
       'Gates Open — Peace, Shells & Music! ✌️',
     );
+    markWebWorldReady();
   }
 
   @override
   void onRemove() {
     _isRemoved = true;
+    worldContextPrompt.dispose();
     _shaders.dispose();
     super.onRemove();
   }
@@ -502,6 +647,7 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
     final p = player;
     if (p == null) return;
     p.clearTapPath();
+    _pendingAutoInteractTarget = null;
     p.position.setValues(wx, wy);
     camera.follow(p, snap: true);
   }
@@ -516,6 +662,7 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
     }
     final overlayState = container.read(uiOverlayProvider);
     if (overlayState.modal != ActiveModalOverlay.none ||
+        overlayState.pocketProgramOpen ||
         container.read(journalStateProvider).isOpen) {
       inputController.clearAll();
       return KeyEventResult.ignored;
@@ -530,6 +677,14 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
 
   @override
   void onTapDown(TapDownEvent event) {
+    handleCanvasTapAt(
+      ui.Offset(event.canvasPosition.x, event.canvasPosition.y),
+    );
+  }
+
+  /// Handles direct tap-to-walk & tap-to-interact on diegetic gate kiosks, NPCs,
+  /// heritage cultivar trees, booths, and stage signs.
+  void handleCanvasTapAt(ui.Offset canvasPos) {
     unawaited(audioService.unlockAndInitialize());
     final overlayState = container.read(uiOverlayProvider);
     if (overlayState.isBlockingInput ||
@@ -539,15 +694,92 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
     final p = player;
     if (p == null) return;
 
-    final worldPt = camera.globalToLocal(event.canvasPosition);
-    // If tapping right beside an interactable/NPC within reach, trigger interact!
-    if ((worldPt - p.position).length < 40.0 &&
+    final worldPt = camera.globalToLocal(Vector2(canvasPos.dx, canvasPos.dy));
+    final tapOffset = ui.Offset(worldPt.x, worldPt.y);
+
+    // 1. Diegetic Orchard Gate Kiosks (Left Chalkboard Lineup & Right Cultivar Booth)
+    if ((tapOffset - OrchardGateLayout.lineupKioskPos).distance <= 34.0) {
+      if ((p.position - Vector2(
+                OrchardGateLayout.lineupKioskPos.dx,
+                OrchardGateLayout.lineupKioskPos.dy,
+              )).length <=
+          190.0) {
+        openLineupKiosk();
+        return;
+      }
+    }
+    if ((tapOffset - OrchardGateLayout.cultivarBoothPos).distance <= 36.0) {
+      if ((p.position - Vector2(
+                OrchardGateLayout.cultivarBoothPos.dx,
+                OrchardGateLayout.cultivarBoothPos.dy,
+              )).length <=
+          190.0) {
+        openCultivarBooth();
+        return;
+      }
+    }
+
+    // 2. Tapping right beside an already-in-range prompt target triggers immediately
+    if ((worldPt - p.position).length < 44.0 &&
         overlayState.nearbyInteractPrompt != null) {
+      _pendingAutoInteractTarget = null;
       handleInteract();
       return;
     }
 
-    // Tapping directly on the Day 2 Creekside Electric Purple Blueberries basket shares berries!
+    // 3. Tapping directly on an NPC, Heritage Cultivar Tree, or World Interactable:
+    //    interact immediately if in range, or A*-walk up and auto-interact on arrival!
+    final tappedNpc = _nearestNpcWithDist(worldPt, maxRadius: 28.0);
+    if (tappedNpc != null) {
+      final actor = tappedNpc.$1;
+      if (actor.position.distanceTo(p.position) <= 50.0) {
+        _pendingAutoInteractTarget = null;
+        _interactWithNpc(actor.spec);
+        return;
+      }
+      _walkToAndAutoInteract(ui.Offset(actor.position.x, actor.position.y));
+      return;
+    }
+
+    final tappedCultivar = _nearestCultivarSpotWithDist(worldPt, maxRadius: 26.0);
+    if (tappedCultivar != null) {
+      final spot = tappedCultivar.$1;
+      if ((Vector2(spot.x, spot.y) - p.position).length <= 50.0) {
+        _pendingAutoInteractTarget = null;
+        inspectCultivarTree(spot);
+        return;
+      }
+      _walkToAndAutoInteract(spot.position);
+      return;
+    }
+
+    final tappedObj = _nearestInteractableWithDist(worldPt, maxRadius: 24.0);
+    if (tappedObj != null) {
+      final obj = tappedObj.$1;
+      final center = obj.rect.center;
+      if ((Vector2(center.dx, center.dy) - p.position).length <= 54.0) {
+        _pendingAutoInteractTarget = null;
+        _interactWithWorldObject(obj);
+        return;
+      }
+      _walkToAndAutoInteract(center);
+      return;
+    }
+
+    final tappedGoer =
+        _crowdDirector?.nearestFestivalGoerWithDist(worldPt, maxRadius: 24.0);
+    if (tappedGoer != null) {
+      final goer = tappedGoer.$1;
+      if (goer.position.distanceTo(p.position) <= 50.0) {
+        _pendingAutoInteractTarget = null;
+        _interactWithFestivalGoer(goer);
+        return;
+      }
+      _walkToAndAutoInteract(ui.Offset(goer.position.x, goer.position.y));
+      return;
+    }
+
+    // 4. Day 2 Creekside Electric Purple Blueberries basket
     final clock = container.read(festivalClockProvider);
     if (clock.isDay2BlueberrySharingActive) {
       final basketVec = Vector2(
@@ -561,7 +793,7 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
       }
     }
 
-    // Tapping directly on a playful Mud Reveler during the Mud Experience flings a mudball!
+    // 5. Playful Mud Revelers during the Post-Rain Mud Experience
     final mudCtrl = _mudExperience;
     if (mudCtrl != null && clock.isMudExperienceActive(data.setlist)) {
       for (final rev in mudCtrl.revelers) {
@@ -575,11 +807,43 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
       }
     }
 
+    // 6. Standard tap-to-walk on open orchard ground
+    _pendingAutoInteractTarget = null;
     final path = AStarPathfinder(mapData).findWorldPath(
       startX: p.position.x,
       startY: p.position.y,
       goalX: worldPt.x,
       goalY: worldPt.y,
+    );
+    if (path.isNotEmpty) {
+      p.setTapPath(path);
+    }
+  }
+
+  void _walkToAndAutoInteract(ui.Offset target) {
+    final p = player;
+    if (p == null) return;
+    _pendingAutoInteractTarget = target;
+    // Aim for target or nearest walkable step beside it
+    var goal = target;
+    if (mapData.isPointBlocked(goal.dx, goal.dy)) {
+      for (final (ox, oy) in const [
+        (0.0, 20.0),
+        (0.0, -20.0),
+        (-20.0, 0.0),
+        (20.0, 0.0),
+      ]) {
+        if (!mapData.isPointBlocked(target.dx + ox, target.dy + oy)) {
+          goal = ui.Offset(target.dx + ox, target.dy + oy);
+          break;
+        }
+      }
+    }
+    final path = AStarPathfinder(mapData).findWorldPath(
+      startX: p.position.x,
+      startY: p.position.y,
+      goalX: goal.dx,
+      goalY: goal.dy,
     );
     if (path.isNotEmpty) {
       p.setTapPath(path);
@@ -962,7 +1226,7 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
 
   void _dispatchInputAction(String action) {
     if (action == 'journal') {
-      container.read(journalStateProvider.notifier).toggleJournal();
+      container.read(uiOverlayProvider.notifier).togglePocketProgram();
       return;
     }
     if (action == 'use_gadget') {
@@ -1004,24 +1268,32 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
 
   @override
   void update(double dt) {
+    if (_isRemoved) return;
     super.update(dt);
     // Flame's GameWidget calls update(0) synchronously inside LayoutBuilder.build
     // on initial mount and viewport resizes; never mutate Riverpod providers during build.
     if (dt <= 0.0) {
-      final clock = container.read(festivalClockProvider);
-      final settings = container.read(settingsProvider);
-      _dayNightMetrics = DayNightMetrics.compute(
-        clock,
-        timeSeconds: _shaderClock,
-        bass: scheduleController.latest.fft.bass,
-        shaderIntensity: settings.shaderIntensity,
-        stormStartMinute: data.setlist.trackByNumber(15)?.startMinute ?? 1070.0,
-        day1RainRampStartMinute:
-            data.setlist.trackByNumber(7)?.startMinute ?? 1139.61,
-        day1StormStartMinute:
-            data.setlist.trackByNumber(8)?.startMinute ?? 1171.64,
-      );
-      _syncWorldMutations();
+      try {
+        final clock = container.read(festivalClockProvider);
+        final settings = container.read(settingsProvider);
+        _dayNightMetrics = _blendGateArrivalDusk(
+          DayNightMetrics.compute(
+            clock,
+            timeSeconds: _shaderClock,
+            bass: scheduleController.latest.fft.bass,
+            shaderIntensity: settings.shaderIntensity,
+            stormStartMinute:
+                data.setlist.trackByNumber(15)?.startMinute ?? 1070.0,
+            day1RainRampStartMinute:
+                data.setlist.trackByNumber(7)?.startMinute ?? 1139.61,
+            day1StormStartMinute:
+                data.setlist.trackByNumber(8)?.startMinute ?? 1171.64,
+          ),
+        );
+        _syncWorldMutations();
+      } on StateError {
+        return;
+      }
       return;
     }
 
@@ -1030,7 +1302,13 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
     final p = player;
     if (p == null) return;
 
-    final profile = container.read(playerProfileProvider);
+    if (_isRemoved) return;
+    late final PlayerProfile profile;
+    try {
+      profile = container.read(playerProfileProvider);
+    } on StateError {
+      return;
+    }
     if (profile.cultivarId != _loadedCultivarId) {
       _loadedCultivarId = profile.cultivarId;
       final nextSheet = _characterSheets[profile.cultivarId];
@@ -1134,6 +1412,9 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
 
     // 3. Player Input + Surface Physics
     final sampled = inputController.sampleMovementAndGamepad();
+    if (sampled.move.length2 > 0.01) {
+      _pendingAutoInteractTarget = null;
+    }
     if (sampled.gamepadAction != null) {
       _dispatchInputAction(sampled.gamepadAction!);
     }
@@ -1252,6 +1533,7 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
       encoreAnywhereJukebox: clock.encoreModeUnlocked,
       justListenStageMode:
           container.read(worldFlagsProvider).justListenStageMode,
+      outerGateMuffle: outerGateApproachFactor,
       onFiveMinuteBellAlert: (upcoming) {
         container.read(uiOverlayProvider.notifier).showToast(
               '🔔 5 Min Alert: "${upcoming.title}" starting soon at ${data.setlist.stages[upcoming.stageId]?.name ?? upcoming.stageId}!',
@@ -1266,6 +1548,23 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
         }
       },
     );
+
+    // Announce newly started stage sets with a celebratory 2.5s slide-down toast
+    final liveTrack = audioSnap.primaryTrack;
+    if (!_seededInitialTrackAnnouncement) {
+      _seededInitialTrackAnnouncement = true;
+      _lastAnnouncedTrackId = liveTrack?.id;
+    } else if (liveTrack != null &&
+        liveTrack.id != _lastAnnouncedTrackId &&
+        !liveTrack.isPaBroadcast &&
+        (audioSnap.primaryMix?.isAudible ?? false)) {
+      _lastAnnouncedTrackId = liveTrack.id;
+      final stName =
+          data.setlist.stages[liveTrack.stageId]?.name ?? liveTrack.stageId;
+      container.read(uiOverlayProvider.notifier).showToast(
+            '🎸 Now Live at $stName: "${liveTrack.title}" — ${liveTrack.artist}',
+          );
+    }
 
     // 5. Music-Synced Player Dance Frame + Crowd Resonance & Camera Zoom
     final updatedFlags = container.read(worldFlagsProvider);
@@ -1316,11 +1615,28 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
     camera.viewfinder.zoom +=
         (desiredZoom - camera.viewfinder.zoom) * (dt * 3.0).clamp(0.0, 1.0);
 
-    // 6. Step all 34 NPC AI routines (including on-stage performers, quest badges, & lighter wave!)
+    // 6. Step 3-Day Festival Crowd Director + all 34 Named NPC AI routines!
     final latestJournal = container.read(journalStateProvider);
     final crowdDancers = <ui.Offset>[];
     final nightSparklerWave =
         updatedFlags.sparklerLit && _dayNightMetrics.darknessFactor > 0.08;
+    _crowdDirector?.update(
+      dt: dt,
+      clock: clock,
+      flags: updatedFlags,
+      liveStages: liveStageVisuals,
+      namedNpcs: _npcActors,
+      playerPos: p.position,
+      bassLevel: audioSnap.fft.bass,
+      nightSparklerWave: nightSparklerWave,
+      clockJumped: clockJumped,
+    );
+    for (final goer
+        in _crowdDirector?.activeCrowdActors ?? const <FestivalGoerActor>[]) {
+      if (goer.isDancingNearStage) {
+        crowdDancers.add(ui.Offset(goer.position.x, goer.position.y));
+      }
+    }
     for (final actor in _npcActors) {
       final dist = actor.position.distanceTo(p.position);
       final nearStage = _nearestLiveStageEntry(actor.position);
@@ -1491,7 +1807,19 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
           (targetBerryBlend - _blueberryVisualBlend) * (dt * 3.0).clamp(0.0, 1.0);
     }
 
-    // 7. Update Contextual Interaction Prompt
+    // 7. Auto-trigger pending tap-to-interact upon arrival & update contextual prompt
+    final autoTarget = _pendingAutoInteractTarget;
+    if (autoTarget != null && !blocked) {
+      final d = (Vector2(autoTarget.dx, autoTarget.dy) - p.position).length;
+      if (d <= 52.0) {
+        _pendingAutoInteractTarget = null;
+        p.clearTapPath();
+        _updateInteractionPrompt(p.position);
+        handleInteract();
+      } else if (!p.hasActiveTapPath) {
+        _pendingAutoInteractTarget = null;
+      }
+    }
     _updateInteractionPrompt(p.position);
 
     // Periodic gentle position & state autosave + rolling audio window warm-up
@@ -1517,7 +1845,7 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
     required bool snapPerformers,
   }) {
     final stormTrack = data.setlist.trackByNumber(15);
-    _dayNightMetrics = DayNightMetrics.compute(
+    final rawMetrics = DayNightMetrics.compute(
       clock,
       timeSeconds: _shaderClock,
       bass: bass,
@@ -1528,6 +1856,7 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
       day1StormStartMinute:
           data.setlist.trackByNumber(8)?.startMinute ?? 1171.64,
     );
+    _dayNightMetrics = _blendGateArrivalDusk(rawMetrics);
 
     final director = _performerDirector;
     if (director != null) {
@@ -1542,6 +1871,36 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
 
     _lastSyncedDay = clock.day;
     _lastSyncedMinute = clock.minuteOfDay;
+  }
+
+  DayNightMetrics _blendGateArrivalDusk(DayNightMetrics base) {
+    final g = outerGateApproachFactor;
+    if (g <= 0.01 || base.rainIntensity >= 0.2) {
+      return base;
+    }
+    final duskTint = ui.Color.lerp(
+          base.ambientTint,
+          const ui.Color(0xFF7A3B8E),
+          (0.62 * g).clamp(0.0, 1.0),
+        ) ??
+        base.ambientTint;
+    return DayNightMetrics(
+      sunAltitude: base.sunAltitude,
+      shadowOffset: base.shadowOffset,
+      shadowAlpha: base.shadowAlpha,
+      ambientTint: duskTint,
+      ambientTintStrength: math.max(base.ambientTintStrength, 0.24 * g),
+      darknessFactor: math.max(base.darknessFactor, 0.34 * g),
+      stormBuildUp: base.stormBuildUp,
+      rainIntensity: base.rainIntensity,
+      wetness: base.wetness,
+      mistIntensity: base.mistIntensity,
+      sunbeamIntensity: base.sunbeamIntensity,
+      windStrength: base.windStrength,
+      lightningFlash: base.lightningFlash,
+      starlightAlpha: base.starlightAlpha,
+      lanternGlowStrength: math.max(base.lanternGlowStrength, 0.94 * g),
+    );
   }
 
   (ui.Offset, LiveStageVisualState)? _nearestLiveStageEntry(Vector2 fromPos) {
@@ -1613,9 +1972,12 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
       }
     }
 
-    // 3. Architectural sanctuary & vehicle lights at dusk/night/storm
-    if (_dayNightMetrics.darknessFactor > 0.06) {
+    // 3. Architectural sanctuary, Orchard Gate & vehicle lights at dusk/night/storm
+    if (_dayNightMetrics.darknessFactor > 0.05) {
       const sanctuaries = <(ui.Offset, double, ui.Color, double)>[
+        (ui.Offset(608, 1272), 88.0, ui.Color(0xFFFFCF56), 0.94), // Orchard Gate Arch
+        (ui.Offset(536, 1320), 50.0, ui.Color(0xFFFFE599), 0.82), // Lineup Chalkboard Kiosk
+        (ui.Offset(680, 1320), 52.0, ui.Color(0xFFFFBE0B), 0.86), // Cultivar & Ticket Booth
         (ui.Offset(1200, 144), 76.0, ui.Color(0xFF80FFDB), 0.85), // Tea-Light Altar
         (ui.Offset(1760, 352), 140.0, ui.Color(0xFF72EFDD), 0.88), // Andromeda Dome
         (ui.Offset(186, 1020), 66.0, ui.Color(0xFFFFE599), 0.80), // 1969 Urbano Headlights
@@ -1780,59 +2142,335 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
     }
   }
 
+  CultivarSpec? _cultivarSpecById(String id) {
+    for (final c in data.cultivars) {
+      if (c.id == id) return c;
+    }
+    return null;
+  }
+
+  (HeritageCultivarTreeSpot, double)? _nearestCultivarSpotWithDist(
+    Vector2 pos, {
+    required double maxRadius,
+  }) {
+    HeritageCultivarTreeSpot? best;
+    var bestDist = maxRadius;
+    for (final spot in OrchardGateLayout.heritageCultivarSpots) {
+      final dx = spot.x - pos.x;
+      final dy = spot.y - pos.y;
+      final d = math.sqrt(dx * dx + dy * dy);
+      if (d < bestDist) {
+        bestDist = d;
+        best = spot;
+      }
+    }
+    return best == null ? null : (best, bestDist);
+  }
+
+  /// Inspects or discovers one of the 11 Heritage Walnut Cultivar trees across the orchard.
+  void inspectCultivarTree(HeritageCultivarTreeSpot spot) {
+    final spec = _cultivarSpecById(spot.cultivarId);
+    final profileBefore = container.read(playerProfileProvider);
+    final wasDiscovered =
+        profileBefore.discoveredCultivarIds.contains(spot.cultivarId);
+    container
+        .read(playerProfileProvider.notifier)
+        .discoverCultivar(spot.cultivarId);
+    final total =
+        container.read(playerProfileProvider).discoveredCultivarIds.length;
+    final settings = container.read(settingsProvider);
+    final sfxVol = 0.58 * settings.masterVolume * settings.sfxVolume;
+
+    if (!wasDiscovered) {
+      container.read(journalStateProvider.notifier).addPeaceBeads(6);
+      unawaited(
+        audioService.playSfx(
+          'assets/audio/sfx/sfx_bell_cmajor.wav',
+          volume: sfxVol,
+        ),
+      );
+      unawaited(persistCurrentGameStateFromContainer(container));
+      container.read(uiOverlayProvider.notifier).showToast(
+            '🌰 Cultivar Discovered ($total/11): ${spec?.name ?? spot.cultivarId} — ${spec?.flavorNotes ?? spot.groveLabel}!',
+          );
+    } else {
+      unawaited(
+        audioService.playSfx(
+          'assets/audio/sfx/sfx_dew_pickup.wav',
+          volume: sfxVol * 0.85,
+        ),
+      );
+      container.read(uiOverlayProvider.notifier).showToast(
+            '🌰 ${spec?.name ?? spot.cultivarId} ($total/11 Pouch) · ${spec?.flavorNotes ?? spot.groveLabel}',
+          );
+    }
+  }
+
+  void _emitWorldContextPrompt({
+    required String id,
+    required String nearbyLabel,
+    required String? bubbleLabel,
+    required String icon,
+    required ui.Offset worldAnchor,
+  }) {
+    container.read(uiOverlayProvider.notifier).setNearbyPrompt(nearbyLabel);
+    final overlay = container.read(uiOverlayProvider);
+    if (bubbleLabel == null ||
+        overlay.isBlockingInput ||
+        container.read(journalStateProvider).isOpen) {
+      if (worldContextPrompt.value != null) {
+        worldContextPrompt.value = null;
+      }
+      return;
+    }
+    final screenPt = worldToScreen(worldAnchor);
+    if (screenPt == null) {
+      if (worldContextPrompt.value != null) {
+        worldContextPrompt.value = null;
+      }
+      return;
+    }
+    final prev = worldContextPrompt.value;
+    if (prev != null &&
+        prev.id == id &&
+        prev.label == bubbleLabel &&
+        prev.icon == icon &&
+        (prev.screenAnchor - screenPt).distance < 0.6) {
+      return;
+    }
+    worldContextPrompt.value = WorldContextPrompt(
+      id: id,
+      label: bubbleLabel,
+      icon: icon,
+      worldAnchor: worldAnchor,
+      screenAnchor: screenPt,
+    );
+  }
+
+  void _clearWorldContextPrompt() {
+    container.read(uiOverlayProvider.notifier).setNearbyPrompt(null);
+    if (worldContextPrompt.value != null) {
+      worldContextPrompt.value = null;
+    }
+  }
+
   void _updateInteractionPrompt(Vector2 pos) {
+    final overlay = container.read(uiOverlayProvider);
+    if (overlay.isBlockingInput ||
+        container.read(journalStateProvider).isOpen) {
+      if (worldContextPrompt.value != null) {
+        worldContextPrompt.value = null;
+      }
+      return;
+    }
+
     final clock = container.read(festivalClockProvider);
     if (clock.isDay2BlueberrySharingActive &&
         (_blueberryExperience?.isPlayerNearBasket(pos) ?? false)) {
-      container
-          .read(uiOverlayProvider.notifier)
-          .setNearbyPrompt('Share Electric Purple Blueberries [E]');
+      _emitWorldContextPrompt(
+        id: 'electric_blueberries',
+        nearbyLabel: 'Share Electric Purple Blueberries [E]',
+        bubbleLabel: 'Share Blueberries',
+        icon: '🫐',
+        worldAnchor:
+            ElectricBlueberryExperienceController.basketWorldPos.translate(
+          0.0,
+          -22.0,
+        ),
+      );
       return;
     }
 
-    final npcHit = _nearestNpcWithDist(pos, maxRadius: 42.0);
-    final objHit = _nearestInteractableWithDist(pos, maxRadius: 42.0);
+    // Diegetic Orchard Gate flanking kiosks (already have dedicated world badges at gate)
+    final lineupDist = (ui.Offset(pos.x, pos.y) - OrchardGateLayout.lineupKioskPos).distance;
+    if (lineupDist <= 42.0) {
+      _emitWorldContextPrompt(
+        id: 'gate_lineup_kiosk',
+        nearbyLabel: 'Inspect Chalkboard Lineup · 30 Sets [E]',
+        bubbleLabel: isPlayerNearOrchardGate ? null : 'Lineup · 30 Sets',
+        icon: '🎸',
+        worldAnchor: OrchardGateLayout.lineupKioskPos.translate(0.0, -28.0),
+      );
+      return;
+    }
+    final boothDist = (ui.Offset(pos.x, pos.y) - OrchardGateLayout.cultivarBoothPos).distance;
+    if (boothDist <= 42.0) {
+      _emitWorldContextPrompt(
+        id: 'gate_cultivar_booth',
+        nearbyLabel: 'Open Cultivar Guide & Audio Booth [E]',
+        bubbleLabel: isPlayerNearOrchardGate ? null : 'Cultivars & Mix',
+        icon: '🌰',
+        worldAnchor: OrchardGateLayout.cultivarBoothPos.translate(0.0, -28.0),
+      );
+      return;
+    }
+
+    final npcHit = _nearestNpcWithDist(pos, maxRadius: 44.0);
+    final objHit = _nearestInteractableWithDist(pos, maxRadius: 44.0);
+    final cultivarHit = _nearestCultivarSpotWithDist(pos, maxRadius: 42.0);
 
     if (npcHit != null &&
-        (objHit == null || _npcBeatsObject(pos, npcHit.$2, objHit.$1))) {
-      container
-          .read(uiOverlayProvider.notifier)
-          .setNearbyPrompt('Talk to ${npcHit.$1.spec.name} [E]');
+        (objHit == null ||
+            _npcBeatsObject(pos, npcHit.$1, npcHit.$2, objHit.$1)) &&
+        (cultivarHit == null || npcHit.$2 <= cultivarHit.$2 + 4.0)) {
+      final actor = npcHit.$1;
+      _emitWorldContextPrompt(
+        id: 'npc_${actor.spec.id}',
+        nearbyLabel: 'Talk to ${actor.spec.name} [E]',
+        bubbleLabel: actor.spec.name,
+        icon: '💬',
+        worldAnchor: ui.Offset(actor.position.x, actor.position.y - 26.0),
+      );
       return;
     }
-    if (objHit != null) {
+    if (objHit != null &&
+        (cultivarHit == null || objHit.$2 <= cultivarHit.$2 + 4.0)) {
       final obj = objHit.$1;
-      final label = switch (obj.name) {
-        'tent_rest_spot' => 'Rest / Save at Personal Tent [E]',
-        'turntable_spot' => 'Spin Campground Double-LP Turntable [E]',
-        'falafel_stand' => 'Inspect Falafel Stand Counter [E]',
-        'old_oak_roots' => 'Inspect Old Oak Roots [E]',
-        'high_branch_ladder' => 'Climb High-Branch Booth Ladder [E]',
-        'vocal_tea_vine' => 'Steep Aged-Grapevine Vocal Tea [E]',
-        'resonator_nw' ||
-        'resonator_ne' ||
-        'resonator_se' =>
-          'Tune Meteoric Space-Glass Resonator [E]',
-        'meadow_blessing_stone' => 'Meadow Acoustic Blessing Stone [E]',
-        'don_shello_buried_stash' => 'Inspect Orchard Root Coordinates [E]',
-        'tea_light_altar' => 'Meditate at Sacred Tea-Light Altar [E]',
-        'pinball_cabinet' => 'Play Pinball Wizard (Optical Sorter) [E]',
-        'sorting_belt_console' => 'Play Sorting Belt Blues [E]',
-        'artifact_booth' => 'Inspect Vintage Vinyl & 3D Totem Booth [E]',
-        'penny_craft_blanket' => "Browse Penny's Craft & Toy Blanket [E]",
-        'colin_curio_crate' => "Browse Colin's Camera & Curio Crate [E]",
-        'street_food_cart' => 'Order Festival Street Food & Cider [E]',
-        'bulletin_lost_found' => 'Read Orchard Bulletin & Lost-and-Found [E]',
-        'lost_brass_compass' => 'Pick Up Glinting Brass Compass [E]',
-        _ => 'Inspect Sound Terminal [E]',
+      final (nearbyLabel, bubbleLabel, icon) = switch (obj.name) {
+        'tent_rest_spot' => (
+            'Rest / Save at Personal Tent [E]',
+            'Rest & Save',
+            '⛺'
+          ),
+        'turntable_spot' => (
+            'Spin Campground Double-LP Turntable [E]',
+            'Spin Double-LP',
+            '💿'
+          ),
+        'falafel_stand' => (
+            'Inspect Falafel Stand Counter [E]',
+            'Falafel Stand',
+            '🥙'
+          ),
+        'old_oak_roots' => (
+            'Inspect Old Oak Roots [E]',
+            'Old Oak Roots',
+            '🌳'
+          ),
+        'high_branch_ladder' => (
+            'Climb High-Branch Booth Ladder [E]',
+            'Climb Booth',
+            '🪜'
+          ),
+        'vocal_tea_vine' => (
+            'Steep Aged-Grapevine Vocal Tea [E]',
+            'Steep Vocal Tea',
+            '🍵'
+          ),
+        'resonator_nw' || 'resonator_ne' || 'resonator_se' => (
+            'Tune Meteoric Space-Glass Resonator [E]',
+            'Tune Resonator',
+            '🔮'
+          ),
+        'meadow_blessing_stone' => (
+            'Meadow Acoustic Blessing Stone [E]',
+            'Blessing Stone',
+            '🪨'
+          ),
+        'don_shello_buried_stash' => (
+            'Inspect Orchard Root Coordinates [E]',
+            'Inspect Roots',
+            '🪏'
+          ),
+        'tea_light_altar' => (
+            'Meditate at Sacred Tea-Light Altar [E]',
+            'Tea-Light Altar',
+            '🕯️'
+          ),
+        'pinball_cabinet' => (
+            'Play Pinball Wizard (Optical Sorter) [E]',
+            'Pinball Sorter',
+            '🕹️'
+          ),
+        'sorting_belt_console' => (
+            'Play Sorting Belt Blues [E]',
+            'Sorting Belt Blues',
+            '🎛️'
+          ),
+        'artifact_booth' => (
+            'Inspect Vintage Vinyl & 3D Totem Booth [E]',
+            'Totem & Vinyl Booth',
+            '🏺'
+          ),
+        'penny_craft_blanket' => (
+            "Browse Penny's Craft & Toy Blanket [E]",
+            'Craft Blanket',
+            '🧶'
+          ),
+        'colin_curio_crate' => (
+            "Browse Colin's Camera & Curio Crate [E]",
+            'Curio Crate',
+            '📷'
+          ),
+        'street_food_cart' => (
+            'Order Festival Street Food & Cider [E]',
+            'Street Food & Cider',
+            '🥨'
+          ),
+        'bulletin_lost_found' => (
+            'Read Orchard Bulletin & Lost-and-Found [E]',
+            'Bulletin Board',
+            '📌'
+          ),
+        'lost_brass_compass' => (
+            'Pick Up Glinting Brass Compass [E]',
+            'Brass Compass',
+            '🧭'
+          ),
+        _ => ('Inspect Sound Terminal [E]', 'Sound Terminal', '🔊'),
       };
-      container.read(uiOverlayProvider.notifier).setNearbyPrompt(label);
+      _emitWorldContextPrompt(
+        id: 'obj_${obj.name}',
+        nearbyLabel: nearbyLabel,
+        bubbleLabel: bubbleLabel,
+        icon: icon,
+        worldAnchor: ui.Offset(obj.rect.center.dx, obj.rect.top - 12.0),
+      );
       return;
     }
-    container.read(uiOverlayProvider.notifier).setNearbyPrompt(null);
+    if (cultivarHit != null) {
+      final spot = cultivarHit.$1;
+      final spec = _cultivarSpecById(spot.cultivarId);
+      final discovered = container
+          .read(playerProfileProvider)
+          .discoveredCultivarIds
+          .contains(spot.cultivarId);
+      final name = spec?.name ?? spot.cultivarId;
+      _emitWorldContextPrompt(
+        id: 'cultivar_${spot.cultivarId}',
+        nearbyLabel: 'Inspect $name Cultivar Tree [E]',
+        bubbleLabel: discovered ? name : 'Discover $name',
+        icon: discovered ? '🌰' : '✨',
+        worldAnchor: ui.Offset(spot.x, spot.y - 28.0),
+      );
+      return;
+    }
+    final goerHit =
+        _crowdDirector?.nearestFestivalGoerWithDist(pos, maxRadius: 40.0);
+    if (goerHit != null) {
+      final goer = goerHit.$1;
+      _emitWorldContextPrompt(
+        id: 'goer_${goer.spec.id}',
+        nearbyLabel: 'Chat with ${goer.spec.name} [E]',
+        bubbleLabel: goer.spec.name,
+        icon: '💬',
+        worldAnchor: ui.Offset(goer.position.x, goer.position.y - 26.0),
+      );
+      return;
+    }
+    _clearWorldContextPrompt();
   }
 
-  bool _npcBeatsObject(Vector2 pos, double npcDist, MapObjectZone obj) {
+  bool _npcBeatsObject(
+    Vector2 pos,
+    NpcActor npcActor,
+    double npcDist,
+    MapObjectZone obj,
+  ) {
+    if (npcActor.isQueuingForFood ||
+        npcActor.autonomousActivity == NpcAutonomousActivity.walkingToFoodLine) {
+      return false;
+    }
     final cx = obj.rect.center.dx - pos.x;
     final cy = obj.rect.center.dy - pos.y;
     final objCenterDist = math.sqrt(cx * cx + cy * cy);
@@ -1892,7 +2530,9 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
       }
       return;
     }
-    if (overlay.modal != ActiveModalOverlay.none) return;
+    if (overlay.modal != ActiveModalOverlay.none || overlay.pocketProgramOpen) {
+      return;
+    }
 
     final p = player;
     if (p == null) return;
@@ -1904,18 +2544,68 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
       return;
     }
 
-    final npcHit = _nearestNpcWithDist(p.position, maxRadius: 44.0);
-    final objHit = _nearestInteractableWithDist(p.position, maxRadius: 44.0);
+    final playerOffset = ui.Offset(p.position.x, p.position.y);
+    if ((playerOffset - OrchardGateLayout.lineupKioskPos).distance <= 44.0) {
+      openLineupKiosk();
+      return;
+    }
+    if ((playerOffset - OrchardGateLayout.cultivarBoothPos).distance <= 44.0) {
+      openCultivarBooth();
+      return;
+    }
+
+    final npcHit = _nearestNpcWithDist(p.position, maxRadius: 46.0);
+    final objHit = _nearestInteractableWithDist(p.position, maxRadius: 46.0);
+    final cultivarHit =
+        _nearestCultivarSpotWithDist(p.position, maxRadius: 44.0);
 
     if (npcHit != null &&
-        (objHit == null || _npcBeatsObject(p.position, npcHit.$2, objHit.$1))) {
+        (objHit == null ||
+            _npcBeatsObject(p.position, npcHit.$1, npcHit.$2, objHit.$1)) &&
+        (cultivarHit == null || npcHit.$2 <= cultivarHit.$2 + 4.0)) {
       _interactWithNpc(npcHit.$1.spec);
       return;
     }
 
-    if (objHit != null) {
+    if (objHit != null &&
+        (cultivarHit == null || objHit.$2 <= cultivarHit.$2 + 4.0)) {
       _interactWithWorldObject(objHit.$1);
+      return;
     }
+
+    if (cultivarHit != null) {
+      inspectCultivarTree(cultivarHit.$1);
+      return;
+    }
+
+    final goerHit =
+        _crowdDirector?.nearestFestivalGoerWithDist(p.position, maxRadius: 44.0);
+    if (goerHit != null) {
+      _interactWithFestivalGoer(goerHit.$1);
+    }
+  }
+
+  void _interactWithFestivalGoer(FestivalGoerActor goer) {
+    final director = _crowdDirector;
+    if (director == null) return;
+    final clock = container.read(festivalClockProvider);
+    final flags = container.read(worldFlagsProvider);
+    final lines = director.buildFestivalGoerDialogue(
+      goer: goer,
+      clock: clock,
+      flags: flags,
+      liveStages: liveStageVisuals,
+    );
+    _playVoiceBark(goer.spec.voicePitch);
+    container.read(uiOverlayProvider.notifier).startDialogue(
+          DialogueSession(
+            speakerName: goer.spec.name,
+            speakerTitle: goer.spec.title,
+            portraitAsset: goer.spec.portraitAsset,
+            voicePitch: goer.spec.voicePitch,
+            lines: lines,
+          ),
+        );
   }
 
   void _playVoiceBark(String pitch) {
@@ -1961,7 +2651,8 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
     final profileN = container.read(playerProfileProvider.notifier);
     final clock = container.read(festivalClockProvider);
 
-    List<String> lines = npc.dialogue['default'] ?? [npc.catchphrase];
+    final defaultLines = npc.dialogue['default'] ?? [npc.catchphrase];
+    List<String> lines = defaultLines;
 
     switch (npc.id) {
       case 'patchouli_pete':
@@ -2424,6 +3115,20 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
         break;
     }
 
+    final isAmbientOrCompletedState = identical(lines, defaultLines) ||
+        identical(lines, npc.dialogue['completed']) ||
+        identical(lines, npc.dialogue['after_fences']);
+    final enrichedLines = _crowdDirector?.enrichNamedNpcDialogue(
+          npc: npc,
+          actor: npcActorById(npc.id),
+          baseLines: lines,
+          isAmbientOrCompletedState: isAmbientOrCompletedState,
+          clock: clock,
+          flags: container.read(worldFlagsProvider),
+          liveStages: liveStageVisuals,
+        ) ??
+        lines;
+
     _playVoiceBark(npc.voicePitch);
     container.read(uiOverlayProvider.notifier).startDialogue(
           DialogueSession(
@@ -2431,7 +3136,7 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
             speakerTitle: npc.title,
             portraitAsset: npc.portraitAsset,
             voicePitch: npc.voicePitch,
-            lines: lines,
+            lines: enrichedLines,
           ),
         );
   }

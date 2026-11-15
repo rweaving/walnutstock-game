@@ -549,13 +549,11 @@ void main() {
         ),
       );
       await tester.pump();
-
-      await tester.tap(find.byKey(const ValueKey('tear_ticket_button')));
-      await tester.pump(const Duration(milliseconds: 60));
-      await tester.tap(find.byKey(const ValueKey('enter_orchard_button')));
       await tester.pump(const Duration(milliseconds: 100));
 
-      // Verify Sky Progression Bar & Time Speed chip (1x -> 4x -> 10x -> 1x)
+      // Unfold the single Pocket Program pill to verify Sky Progression Bar & Time Speed chip (1x -> 4x -> 10x -> 1x)
+      await tester.tap(find.byKey(const ValueKey('pocket_program_pill')));
+      await tester.pump();
       expect(find.byKey(const ValueKey('sky_progression_bar')), findsOneWidget);
       final speedBtn = find.byKey(const ValueKey('time_speed_button'));
       expect(speedBtn, findsOneWidget);
@@ -572,6 +570,9 @@ void main() {
       await tester.tap(speedBtn);
       await tester.pump();
       expect(container.read(festivalClockProvider).timeSpeedMultiplier, 1.0);
+
+      await tester.tap(find.byKey(const ValueKey('close_pocket_program_button')));
+      await tester.pump();
 
       // Verify Golden Hour & Starry Night Rest options in TentRestModal
       container
@@ -1344,10 +1345,6 @@ void main() {
         ),
       );
       await tester.pump();
-
-      await tester.tap(find.byKey(const ValueKey('tear_ticket_button')));
-      await tester.pump(const Duration(milliseconds: 60));
-      await tester.tap(find.byKey(const ValueKey('enter_orchard_button')));
       await tester.pump(const Duration(milliseconds: 100));
 
       // Open TentRestModal and jump directly to Day 2 Dawn Creek Blueberries

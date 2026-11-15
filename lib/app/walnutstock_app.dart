@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../audio/platform_audio_probe.dart';
 import '../audio/soloud_audio_service.dart';
 import '../data/models.dart';
 import '../game/minigames/sorting_belt_blues_game.dart';
@@ -18,13 +19,13 @@ import '../ui_overlays/dialogue_box.dart';
 import '../ui_overlays/encore_control_deck.dart';
 import '../ui_overlays/festival_stall_modal.dart';
 import '../ui_overlays/finale_montage_overlay.dart';
+import '../ui_overlays/floating_thumb_joystick.dart';
+import '../ui_overlays/pocket_program_sheet.dart';
 import '../ui_overlays/settings_drawer.dart';
 import '../ui_overlays/vibe_journal.dart';
 import '../ui_overlays/vinyl_player.dart';
 import '../ui_overlays/wristband_hud.dart';
-import 'cultivar_creator_screen.dart';
 import 'orchard_loading_screen.dart';
-import 'ticket_splash_screen.dart';
 
 class WalnutstockApp extends ConsumerStatefulWidget {
   const WalnutstockApp({
@@ -44,6 +45,30 @@ class WalnutstockApp extends ConsumerStatefulWidget {
 
 class _WalnutstockAppState extends ConsumerState<WalnutstockApp> {
   WalnutstockGame? _game;
+  final ValueNotifier<int> _userActivityEpoch = ValueNotifier<int>(0);
+
+  void _notifyUserActivity() {
+    _userActivityEpoch.value++;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    registerWebTicketTearCallback(() {
+      if (!mounted) return;
+      _notifyUserActivity();
+      unawaited(widget.audioService.unlockAndInitialize());
+      ref.read(playerProfileProvider.notifier).confirmCultivarAndEnter();
+      final container = ProviderScope.containerOf(context, listen: false);
+      unawaited(persistCurrentGameStateFromContainer(container));
+    });
+  }
+
+  @override
+  void dispose() {
+    _userActivityEpoch.dispose();
+    super.dispose();
+  }
 
   WalnutstockGame _ensureGame(ProviderContainer container) {
     return _game ??= WalnutstockGame(
@@ -56,8 +81,6 @@ class _WalnutstockAppState extends ConsumerState<WalnutstockApp> {
 
   @override
   Widget build(BuildContext context) {
-    final profile = ref.watch(playerProfileProvider);
-
     return MaterialApp(
       title: 'Walnutstock — Three Days of Peace, Shells & Music',
       debugShowCheckedModeBanner: false,
@@ -69,31 +92,20 @@ class _WalnutstockAppState extends ConsumerState<WalnutstockApp> {
       ),
       home: Listener(
         behavior: HitTestBehavior.translucent,
-        onPointerDown: (_) =>
-            unawaited(widget.audioService.unlockAndInitialize()),
-        onPointerUp: (_) =>
-            unawaited(widget.audioService.unlockAndInitialize()),
-        child: _buildActiveScreen(
-          context,
-          profile.ticketTorn,
-          profile.cultivarConfirmed,
-        ),
+        onPointerDown: (_) {
+          _notifyUserActivity();
+          unawaited(widget.audioService.unlockAndInitialize());
+        },
+        onPointerUp: (_) {
+          _notifyUserActivity();
+          unawaited(widget.audioService.unlockAndInitialize());
+        },
+        child: _buildPlayableOrchard(context),
       ),
     );
   }
 
-  Widget _buildActiveScreen(
-    BuildContext context,
-    bool ticketTorn,
-    bool cultivarConfirmed,
-  ) {
-    if (!ticketTorn) {
-      return TicketSplashScreen(audioService: widget.audioService);
-    }
-    if (!cultivarConfirmed) {
-      return CultivarCreatorScreen(audioService: widget.audioService);
-    }
-
+  Widget _buildPlayableOrchard(BuildContext context) {
     final container = ProviderScope.containerOf(context, listen: false);
     final game = _ensureGame(container);
     final overlay = ref.watch(uiOverlayProvider);
@@ -102,7 +114,10 @@ class _WalnutstockAppState extends ConsumerState<WalnutstockApp> {
     return CallbackShortcuts(
       bindings: {
         const SingleActivator(LogicalKeyboardKey.escape): () {
-          if (ref.read(journalStateProvider).isOpen) {
+          _notifyUserActivity();
+          if (ref.read(uiOverlayProvider).pocketProgramOpen) {
+            ref.read(uiOverlayProvider.notifier).closePocketProgram();
+          } else if (ref.read(journalStateProvider).isOpen) {
             ref.read(journalStateProvider.notifier).closeJournal();
           } else if (ref.read(uiOverlayProvider).modal !=
               ActiveModalOverlay.none) {
@@ -111,18 +126,28 @@ class _WalnutstockAppState extends ConsumerState<WalnutstockApp> {
         },
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFF121A10),
+        backgroundColor: const Color(0xFF140D1B),
         body: Stack(
           fit: StackFit.expand,
           children: [
             GameWidget<WalnutstockGame>(
               game: game,
               autofocus: true,
-              loadingBuilder: (context) => OrchardLoadingScreen(
-                progressListenable: game.loadProgress,
-              ),
+              loadingBuilder: (context) => isWebTicketLoaderActive()
+                  ? const ColoredBox(color: Color(0xFF140D1B))
+                  : OrchardLoadingScreen(
+                      progressListenable: game.loadProgress,
+                    ),
             ),
-            WristbandHud(game: game),
+            FloatingThumbJoystick(
+              game: game,
+              onUserActivity: _notifyUserActivity,
+            ),
+            WristbandHud(
+              game: game,
+              userActivityListenable: _userActivityEpoch,
+            ),
+            if (overlay.pocketProgramOpen) PocketProgramSheet(game: game),
             if (overlay.dialogue != null)
               DialogueBoxOverlay(
                 session: overlay.dialogue!,

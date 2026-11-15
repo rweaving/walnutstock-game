@@ -13,6 +13,23 @@ import '../world/tiled_map_parser.dart';
 import 'catmull_rom_spline.dart';
 import 'stage_performer_director.dart';
 
+enum CrowdReactionKind {
+  none,
+  setKickoff,
+  soloOrDrop,
+  hushSway,
+  encoreOvation,
+}
+
+enum NpcAutonomousActivity {
+  none,
+  wanderingToStage,
+  dancingAtStage,
+  sittingOnBlanket,
+  walkingToFoodLine,
+  queuingInFoodLine,
+}
+
 class NpcActor extends PositionComponent {
   NpcActor({
     required this.spec,
@@ -46,6 +63,8 @@ class NpcActor extends PositionComponent {
   final List<(double, double)> _patrolPath = [];
   final List<(double, double)> _migrationPath = [];
   final List<(double, double)> _stagePath = [];
+  final List<(double, double)> _autonomousPath = [];
+  Offset? _plannedAutonomousGoal;
   bool _migrationPlannedForStage = false;
   double _hapticCooldown = 0.0;
 
@@ -56,6 +75,20 @@ class NpcActor extends PositionComponent {
   bool _returningFromStage = false;
   double _bassLevel = 0.0;
   bool _audienceGrooving = false;
+
+  NpcAutonomousActivity autonomousActivity = NpcAutonomousActivity.none;
+  Offset? autonomousTarget;
+  int? autonomousFacingOverride;
+  String? autonomousTargetStageId;
+  String? autonomousFoodStallId;
+  int? autonomousFoodQueueSlot;
+
+  CrowdReactionKind performanceReaction = CrowdReactionKind.none;
+  String? reactionCalloutText;
+  double _reactionCalloutTimer = 0.0;
+  double _reactionCalloutDuration = 2.2;
+  String? heldTreatEmoji;
+  double _heldTreatTimer = 0.0;
 
   bool gMajorBudding = false;
   bool vibrating440Hz = false;
@@ -70,7 +103,82 @@ class NpcActor extends PositionComponent {
 
   NpcStageMark? get stageMark => _stageMark;
   bool get isDancingNearStage => _audienceGrooving;
+  bool get isMoving => _moving;
+  bool get isSittingOnBlanket =>
+      autonomousActivity == NpcAutonomousActivity.sittingOnBlanket &&
+      !_moving &&
+      !isOnStagePerforming;
+  bool get isQueuingForFood =>
+      autonomousActivity == NpcAutonomousActivity.queuingInFoodLine &&
+      !_moving &&
+      !isOnStagePerforming;
   StageShowFrame? get nearbyStageShow => _nearbyStageShow;
+
+  void setAutonomousDirective({
+    required NpcAutonomousActivity activity,
+    Offset? target,
+    int? facingOverride,
+    String? stageId,
+    String? foodStallId,
+    int? queueSlot,
+    bool snapImmediately = false,
+  }) {
+    autonomousActivity = activity;
+    autonomousFacingOverride = facingOverride;
+    autonomousTargetStageId = stageId;
+    autonomousFoodStallId = foodStallId;
+    autonomousFoodQueueSlot = queueSlot;
+    if (target == null) {
+      autonomousTarget = null;
+      _plannedAutonomousGoal = null;
+      _autonomousPath.clear();
+      return;
+    }
+    if (snapImmediately && !map.isPointBlocked(target.dx, target.dy)) {
+      position.setValues(target.dx, target.dy);
+      autonomousTarget = target;
+      _plannedAutonomousGoal = target;
+      _autonomousPath.clear();
+      _moving = false;
+      if (facingOverride != null) {
+        _facingRow = facingOverride;
+      }
+      priority = position.y.round();
+      return;
+    }
+    if (_plannedAutonomousGoal == null ||
+        (_plannedAutonomousGoal! - target).distance > 6.0) {
+      _autonomousPath.clear();
+      _plannedAutonomousGoal = target;
+    }
+    autonomousTarget = target;
+  }
+
+  void clearAutonomousDirective() {
+    autonomousActivity = NpcAutonomousActivity.none;
+    autonomousTarget = null;
+    autonomousFacingOverride = null;
+    autonomousTargetStageId = null;
+    autonomousFoodStallId = null;
+    autonomousFoodQueueSlot = null;
+    _plannedAutonomousGoal = null;
+    _autonomousPath.clear();
+  }
+
+  void triggerPerformanceCallout(String text, {double duration = 2.2}) {
+    if (_mudReactionTimer > 0.0 || _reactionCalloutTimer > 0.2) return;
+    reactionCalloutText = text;
+    _reactionCalloutDuration = duration;
+    _reactionCalloutTimer = duration;
+  }
+
+  void grantServedTreat(String emoji, String callout) {
+    heldTreatEmoji = emoji;
+    _heldTreatTimer = 42.0;
+    reactionCalloutText = callout;
+    _reactionCalloutDuration = 2.4;
+    _reactionCalloutTimer = 2.4;
+  }
 
   PerformerChoreoSample? get currentChoreoSample {
     final mark = _stageMark;
@@ -170,6 +278,15 @@ class NpcActor extends PositionComponent {
     if (_mudReactionTimer > 0.0) {
       _mudReactionTimer = math.max(0.0, _mudReactionTimer - dt);
     }
+    if (_reactionCalloutTimer > 0.0) {
+      _reactionCalloutTimer = math.max(0.0, _reactionCalloutTimer - dt);
+    }
+    if (_heldTreatTimer > 0.0) {
+      _heldTreatTimer = math.max(0.0, _heldTreatTimer - dt);
+      if (_heldTreatTimer <= 0.0) {
+        heldTreatEmoji = null;
+      }
+    }
     if (mudSplatter > 0.0) {
       final rainWash = (metricsGetter?.call().rainIntensity ?? 0.0) > 0.4;
       mudSplatter =
@@ -243,14 +360,55 @@ class NpcActor extends PositionComponent {
         _audienceGrooving = !_moving || withinStageDanceBowl;
         priority = position.y.round();
         return;
-      } else if ((position.x - spec.spawnX).abs() > 8.0 ||
-          (position.y - spec.spawnY).abs() > 8.0) {
+      } else if (autonomousActivity == NpcAutonomousActivity.none &&
+          ((position.x - spec.spawnX).abs() > 8.0 ||
+              (position.y - spec.spawnY).abs() > 8.0)) {
         // Return cleanly to home grove if scrubbed back from Sunday finale in Encore Mode
         _stepAStarGoal(spec.spawnX, spec.spawnY,
             forStageMigration: false, dt: dt);
         priority = position.y.round();
         return;
       }
+    }
+
+    // Autonomous living-festival activity (wandering between stages, sitting on blankets, queuing for food!)
+    if (autonomousActivity != NpcAutonomousActivity.none &&
+        autonomousTarget != null) {
+      final goal = autonomousTarget!;
+      final moveSpeed =
+          autonomousActivity == NpcAutonomousActivity.queuingInFoodLine
+              ? 36.0
+              : 49.0;
+      final reached = _stepAutonomousGoal(
+        goal.dx,
+        goal.dy,
+        speed: moveSpeed,
+        dt: dt,
+      );
+      if (reached) {
+        if (autonomousActivity == NpcAutonomousActivity.wanderingToStage) {
+          autonomousActivity = NpcAutonomousActivity.dancingAtStage;
+        } else if (autonomousActivity ==
+            NpcAutonomousActivity.walkingToFoodLine) {
+          autonomousActivity = NpcAutonomousActivity.queuingInFoodLine;
+        }
+        if (autonomousFacingOverride != null) {
+          _facingRow = autonomousFacingOverride!;
+        } else if (nearbyLiveStagePos != null && withinStageDanceBowl) {
+          _updateFacing(
+            nearbyLiveStagePos.dx - position.x,
+            nearbyLiveStagePos.dy - position.y,
+          );
+        }
+        if (autonomousActivity == NpcAutonomousActivity.dancingAtStage &&
+            (withinStageDanceBowl ||
+                dancingWithPlayer ||
+                performanceReaction == CrowdReactionKind.encoreOvation)) {
+          _audienceGrooving = true;
+        }
+      }
+      priority = position.y.round();
+      return;
     }
 
     if (_spline != null) {
@@ -287,12 +445,63 @@ class NpcActor extends PositionComponent {
         final dy = nearbyLiveStagePos.dy - position.y;
         _updateFacing(dx, dy);
         _audienceGrooving = true;
-      } else if (dancingWithPlayer) {
+      } else if (dancingWithPlayer ||
+          performanceReaction == CrowdReactionKind.encoreOvation) {
         _audienceGrooving = true;
       }
     }
 
     priority = position.y.round();
+  }
+
+  bool _stepAutonomousGoal(
+    double goalX,
+    double goalY, {
+    required double speed,
+    required double dt,
+  }) {
+    final dxGoal = goalX - position.x;
+    final dyGoal = goalY - position.y;
+    if (dxGoal * dxGoal + dyGoal * dyGoal <= 25.0) {
+      if (!map.isPointBlocked(goalX, goalY)) {
+        position.setValues(goalX, goalY);
+      }
+      _autonomousPath.clear();
+      _moving = false;
+      return true;
+    }
+
+    final nearDirect = dxGoal * dxGoal + dyGoal * dyGoal <= 36.0 * 36.0 &&
+        !map.isPointBlocked(
+          position.x + dxGoal * 0.5,
+          position.y + dyGoal * 0.5,
+        );
+    if (nearDirect && _autonomousPath.isEmpty) {
+      return _moveDirectlyToward(goalX, goalY, speed: speed, dt: dt);
+    }
+
+    if (_autonomousPath.isEmpty) {
+      final planned = AStarPathfinder(map).findWorldPath(
+        startX: position.x,
+        startY: position.y,
+        goalX: goalX,
+        goalY: goalY,
+      );
+      if (planned.isEmpty) {
+        _moving = false;
+        return _moveDirectlyToward(goalX, goalY, speed: speed, dt: dt);
+      }
+      _autonomousPath.addAll(planned);
+      if (!map.isPointBlocked(goalX, goalY)) {
+        _autonomousPath.add((goalX, goalY));
+      }
+    }
+
+    final (tx, ty) = _autonomousPath.first;
+    if (_moveDirectlyToward(tx, ty, speed: speed, dt: dt)) {
+      _autonomousPath.removeAt(0);
+    }
+    return false;
   }
 
   void _stepTowardStageMark(NpcStageMark mark, double dt) {
@@ -509,6 +718,7 @@ class NpcActor extends PositionComponent {
             audShow.sectionMode == LightShowSectionMode.soloShred ||
             audShow.sectionMode == LightShowSectionMode.climaxPrism);
 
+    final seated = isSittingOnBlanket;
     final double perfBounce;
     final double perfSwayX;
     final double stepForwardY;
@@ -526,12 +736,35 @@ class NpcActor extends PositionComponent {
       perfSwayX = math.sin(_animClock * 3.8) * 1.6;
       stepForwardY = 0.0;
       bodyTilt = 0.0;
+    } else if (seated) {
+      perfBounce = audShow != null ? audBeatPulse * 1.15 : 0.0;
+      perfSwayX = math.sin(_animClock * 2.1 + npcPhaseIdx * 0.8) * 1.1;
+      stepForwardY = 3.6;
+      bodyTilt = math.sin(_animClock * 2.1 + npcPhaseIdx * 0.8) * 0.06;
+    } else if (_audienceGrooving &&
+        performanceReaction == CrowdReactionKind.hushSway) {
+      // Gentle synchronized Slow-Wave Sway during acoustic & dawn breakdowns!
+      perfBounce = audBeatPulse * 0.75;
+      perfSwayX = math.sin(_animClock * 2.3 + npcPhaseIdx * 0.65) * 3.5;
+      bodyTilt = math.sin(_animClock * 2.3 + npcPhaseIdx * 0.65) * 0.13;
+      stepForwardY = 0.0;
+    } else if (_audienceGrooving &&
+        performanceReaction == CrowdReactionKind.encoreOvation) {
+      // Enthusiastic standing ovation & applause at set end!
+      perfBounce = math.sin(_animClock * 11.0 + npcPhaseIdx).abs() * 2.4;
+      perfSwayX = math.sin(_animClock * 3.6 + npcPhaseIdx) * 1.2;
+      bodyTilt = 0.0;
+      stepForwardY = 0.0;
     } else if (_audienceGrooving) {
+      final soloBoost = performanceReaction == CrowdReactionKind.soloOrDrop ||
+              performanceReaction == CrowdReactionKind.setKickoff
+          ? 1.32
+          : 1.0;
       audienceDanceFrameCol =
           const [1, 0, 2, 0][(audBeatIdx + npcPhaseIdx) % 4];
       switch (npcDanceStyle) {
         case 0: // Stage-front Boogie Bounce
-          perfBounce = audBeatPulse * (2.1 + audBass * 2.8);
+          perfBounce = audBeatPulse * (2.1 + audBass * 2.8) * soloBoost;
           perfSwayX =
               math.sin((audBeatFloat + npcPhaseIdx * 0.5) * math.pi * 0.5) *
                   2.4;
@@ -541,6 +774,7 @@ class NpcActor extends PositionComponent {
           break;
         case 1: // 1969 Hip Twist
           perfBounce = (1.6 + audBass * 2.2) *
+              soloBoost *
               math.sin(((audBeatFloat - audBeatIdx) * math.pi));
           perfSwayX = math.sin((audBeatFloat + npcPhaseIdx) * math.pi) * 2.7;
           bodyTilt = -math.sin((audBeatFloat + npcPhaseIdx) * math.pi) * 0.14;
@@ -548,21 +782,27 @@ class NpcActor extends PositionComponent {
         case 2: // Two-Step Meadow Shuffle
           final barPhase = ((audBeatFloat + npcPhaseIdx) % 4.0) / 4.0;
           perfSwayX = math.sin(barPhase * math.pi * 2.0) * 3.1;
-          perfBounce = audBeatPulse * (2.0 + audBass * 2.6);
+          perfBounce = audBeatPulse * (2.0 + audBass * 2.6) * soloBoost;
           bodyTilt = math.sin(barPhase * math.pi * 2.0) * 0.10;
           break;
         default: // Joyful Chorus Twirl & Hop
-          perfBounce = audBeatPulse * (2.4 + audBass * 3.1);
+          perfBounce = audBeatPulse * (2.4 + audBass * 3.1) * soloBoost;
           perfSwayX =
               math.cos((audBeatFloat + npcPhaseIdx) * math.pi * 0.5) * 2.2;
           bodyTilt = math.sin((audBeatFloat + npcPhaseIdx) * math.pi) * 0.11;
-          if (!_moving && audHighEnergy) {
+          if (!_moving && (audHighEnergy || soloBoost > 1.1)) {
             const spinRows = [0, 1, 3, 2];
             renderFacingRow = spinRows[(audBeatIdx + npcPhaseIdx) % 4];
           }
           break;
       }
       stepForwardY = 0.0;
+    } else if (isQueuingForFood) {
+      // Subtle hungry shift while waiting in a Vendor Row food line
+      perfBounce = math.sin(_animClock * 3.1 + npcPhaseIdx).abs() * 0.55;
+      perfSwayX = math.sin(_animClock * 1.7 + npcPhaseIdx) * 0.65;
+      stepForwardY = 0.0;
+      bodyTilt = 0.0;
     } else {
       perfBounce = 0.0;
       perfSwayX = 0.0;
@@ -582,7 +822,7 @@ class NpcActor extends PositionComponent {
       canvas: canvas,
       metrics: metrics,
       centerX: 16.0 + totalX * 0.35,
-      footY: 28.5 + stepForwardY,
+      footY: seated ? 26.8 : (28.5 + stepForwardY),
       spotlightColor: performing
           ? mark?.spotlightColor
           : (_audienceGrooving ? audShow?.primaryColor : null),
@@ -598,6 +838,8 @@ class NpcActor extends PositionComponent {
       frameCol = choreo.spriteFrameCol;
     } else if (performing) {
       frameCol = (_animClock * 5.5).floor() % 3;
+    } else if (seated) {
+      frameCol = 0;
     } else if (_audienceGrooving && audienceDanceFrameCol != null) {
       frameCol = audienceDanceFrameCol;
     } else {
@@ -605,7 +847,9 @@ class NpcActor extends PositionComponent {
     }
     final src =
         Rect.fromLTWH(frameCol * 32.0, renderFacingRow * 32.0, 32.0, 32.0);
-    final dst = Rect.fromLTWH(totalX, stepForwardY - totalLiftY, 32.0, 32.0);
+    final dst = seated
+        ? Rect.fromLTWH(totalX, stepForwardY - totalLiftY, 32.0, 28.5)
+        : Rect.fromLTWH(totalX, stepForwardY - totalLiftY, 32.0, 32.0);
 
     canvas.save();
     if (bodyTilt.abs() > 0.005) {
@@ -625,16 +869,54 @@ class NpcActor extends PositionComponent {
     );
     canvas.restore();
 
-    // Stage-front crowd cheering hands & floating groove notes during choruses!
+    if (seated) {
+      // Tucked cross-legged lap shadow & cozy blanket cushion rim
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset(16.0 + totalX, 27.6 - totalLiftY * 0.4),
+          width: 14.5,
+          height: 4.2,
+        ),
+        Paint()..color = const Color(0x551C110A),
+      );
+    }
+
+    // Stage-front crowd cheering hands, applause & floating groove notes!
     if (_audienceGrooving && !performing && !_moving) {
-      if (audHighEnergy && audBeatPulse > 0.38) {
+      final isOvation = performanceReaction == CrowdReactionKind.encoreOvation;
+      final isSolo = performanceReaction == CrowdReactionKind.soloOrDrop ||
+          performanceReaction == CrowdReactionKind.setKickoff;
+      if (isOvation) {
+        final clapGap =
+            1.6 + math.sin(_animClock * 20.0 + npcPhaseIdx * 1.4).abs() * 3.8;
         final handCol = Paint()..color = const Color(0xFFD4A373);
         final outline = Paint()..color = const Color(0xFF1C110A);
+        for (final hx in [16.0 + totalX - clapGap, 16.0 + totalX + clapGap]) {
+          canvas.drawCircle(Offset(hx, 15.0 - totalLiftY), 2.0, outline);
+          canvas.drawCircle(Offset(hx, 15.0 - totalLiftY), 1.35, handCol);
+        }
+        if (clapGap < 2.2) {
+          canvas.drawCircle(
+            Offset(16.0 + totalX, 13.0 - totalLiftY),
+            2.4,
+            Paint()..color = const Color(0x99FFD166),
+          );
+        }
+      } else if ((audHighEnergy && audBeatPulse > 0.38) || isSolo) {
+        final handCol = Paint()..color = const Color(0xFFD4A373);
+        final outline = Paint()..color = const Color(0xFF1C110A);
+        final raiseExtra = isSolo ? 2.4 : 0.0;
         for (final hx in [7.5 + totalX, 24.5 + totalX]) {
           canvas.drawCircle(
-              Offset(hx, 14.0 - totalLiftY - audBeatPulse * 2.0), 2.0, outline);
+            Offset(hx, 14.0 - totalLiftY - audBeatPulse * 2.0 - raiseExtra),
+            2.0,
+            outline,
+          );
           canvas.drawCircle(
-              Offset(hx, 14.0 - totalLiftY - audBeatPulse * 2.0), 1.35, handCol);
+            Offset(hx, 14.0 - totalLiftY - audBeatPulse * 2.0 - raiseExtra),
+            1.35,
+            handCol,
+          );
         }
       }
       if ((audBeatIdx + npcPhaseIdx) % 2 == 0) {
@@ -710,6 +992,23 @@ class NpcActor extends PositionComponent {
       );
     }
 
+    if (heldTreatEmoji != null && _heldTreatTimer > 0.0 && !performing) {
+      final bobSnack = math.sin(_animClock * 4.5 + npcPhaseIdx) * 0.9;
+      renderCenteredWorldPill(
+        canvas: canvas,
+        center: Offset(25.2 + totalX, 17.5 - totalLiftY + bobSnack),
+        text: heldTreatEmoji!,
+        fontSize: 6.0,
+        textColor: const Color(0xFFFFF8E7),
+        backgroundColor: const Color(0xAA1C110A),
+        horizontalPadding: 2.0,
+        pillHeight: 9.5,
+        minPillWidth: 10.0,
+        maxPillWidth: 18.0,
+        borderRadius: 4.5,
+      );
+    }
+
     if (_mudReactionTimer > 0.0 && _mudReactionText != null) {
       final fade = (_mudReactionTimer / 0.45).clamp(0.0, 1.0);
       final rise = (2.0 - _mudReactionTimer) * 4.5;
@@ -724,6 +1023,29 @@ class NpcActor extends PositionComponent {
         pillHeight: 12.0,
         minPillWidth: 44.0,
         maxPillWidth: 112.0,
+        borderRadius: 5.0,
+      );
+    } else if (_reactionCalloutTimer > 0.0 &&
+        reactionCalloutText != null &&
+        !performing) {
+      final fade = (_reactionCalloutTimer / 0.42).clamp(0.0, 1.0);
+      final rise =
+          (_reactionCalloutDuration - _reactionCalloutTimer).clamp(0.0, 2.5) *
+              3.2;
+      final pillY = questBadgeState != null
+          ? (-14.5 - totalLiftY - rise)
+          : (-5.2 - totalLiftY - rise);
+      renderCenteredWorldPill(
+        canvas: canvas,
+        center: Offset(16.0 + totalX, pillY),
+        text: reactionCalloutText!,
+        fontSize: 6.0,
+        textColor: Color.fromRGBO(255, 243, 176, fade),
+        backgroundColor: Color.fromRGBO(28, 17, 10, 0.86 * fade),
+        horizontalPadding: 5.5,
+        pillHeight: 11.5,
+        minPillWidth: 36.0,
+        maxPillWidth: 116.0,
         borderRadius: 5.0,
       );
     }

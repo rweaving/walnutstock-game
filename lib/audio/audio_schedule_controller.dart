@@ -82,6 +82,7 @@ class AudioScheduleController {
     required int? turntableTrackNumber,
     required bool encoreAnywhereJukebox,
     bool justListenStageMode = false,
+    double outerGateMuffle = 0.0,
     required void Function(ScheduledTrack upcoming)? onFiveMinuteBellAlert,
     required void Function(ScheduledTrack liveTrack)? onTrackHeardStamp,
   }) {
@@ -302,6 +303,18 @@ class AudioScheduleController {
           lowPassCutoffHz: 18000.0,
           distance: mix.distance,
           isAudible: true,
+        );
+      } else if (outerGateMuffle > 0.01 && mix.isAudible) {
+        final m = outerGateMuffle.clamp(0.0, 1.0);
+        final attenuatedGain = mix.gain * (1.0 - 0.46 * m);
+        final muffledCutoff =
+            mix.lowPassCutoffHz + (680.0 - mix.lowPassCutoffHz) * m;
+        mix = SpatialMixResult(
+          gain: attenuatedGain,
+          pan: mix.pan * (1.0 - 0.35 * m),
+          lowPassCutoffHz: muffledCutoff.clamp(520.0, 18000.0),
+          distance: mix.distance,
+          isAudible: attenuatedGain >= 0.015,
         );
       }
       stageScored.add((track: t, mix: mix));

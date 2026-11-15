@@ -2,6 +2,14 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:path_provider/path_provider.dart';
 
+void reportWebBootStage(double fraction, [String? message]) {}
+
+void markWebWorldReady() {}
+
+bool isWebTicketLoaderActive() => false;
+
+void registerWebTicketTearCallback(void Function() onTorn) {}
+
 Future<void> ensureWebAudioUnlockedAndReady() async {}
 
 Future<String> detectPreferredTrackExtension() async {

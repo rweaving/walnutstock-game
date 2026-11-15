@@ -14,6 +14,18 @@ external JSFunction? get _walnutResumeAudioContextsFn;
 @JS('walnutIsSoloudWasmReady')
 external JSFunction? get _walnutIsSoloudWasmReadyFn;
 
+@JS('__walnutSetBootStage')
+external JSFunction? get _walnutSetBootStageFn;
+
+@JS('__walnutMarkWorldReady')
+external JSFunction? get _walnutMarkWorldReadyFn;
+
+@JS('__walnutRegisterTearCallback')
+external JSFunction? get _walnutRegisterTearCallbackFn;
+
+@JS('__walnutIsLoaderActive')
+external JSFunction? get _walnutIsLoaderActiveFn;
+
 @JS('Module_soloud')
 external JSAny? get _windowModuleSoloud;
 
@@ -56,6 +68,47 @@ bool _isSoloudWasmLoaded() {
     }
   } catch (_) {}
   return false;
+}
+
+void reportWebBootStage(double fraction, [String? message]) {
+  try {
+    final fn = _walnutSetBootStageFn;
+    if (fn != null) {
+      if (message != null) {
+        fn.callAsFunction(null, fraction.toJS, message.toJS);
+      } else {
+        fn.callAsFunction(null, fraction.toJS);
+      }
+    }
+  } catch (_) {}
+}
+
+void markWebWorldReady() {
+  try {
+    _walnutMarkWorldReadyFn?.callAsFunction();
+  } catch (_) {}
+}
+
+bool isWebTicketLoaderActive() {
+  try {
+    final fn = _walnutIsLoaderActiveFn;
+    if (fn != null) {
+      final res = fn.callAsFunction();
+      if (res != null && res.typeofEquals('boolean')) {
+        return (res as JSBoolean).toDart;
+      }
+    }
+  } catch (_) {}
+  return false;
+}
+
+void registerWebTicketTearCallback(void Function() onTorn) {
+  try {
+    final fn = _walnutRegisterTearCallbackFn;
+    if (fn != null) {
+      fn.callAsFunction(null, onTorn.toJS);
+    }
+  } catch (_) {}
 }
 
 Future<void> ensureWebAudioUnlockedAndReady() async {

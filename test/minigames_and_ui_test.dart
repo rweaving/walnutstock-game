@@ -184,7 +184,7 @@ void main() {
     });
 
     testWidgets(
-        'Ticket Splash -> Cultivar Creator -> Overworld HUD -> All Modals & Encore Deck flow',
+        'Direct Orchard Gate Entry -> Pocket Program Pill (3 Tabs) -> Vibe Journal -> All Modals & Encore Deck flow',
         (tester) async {
       await tester.binding.setSurfaceSize(const Size(960, 640));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -210,29 +210,17 @@ void main() {
         ),
       );
       await tester.pump();
-
-      // 1. Ticket Splash Screen
-      final tearBtn = find.byKey(const ValueKey('tear_ticket_button'));
-      expect(tearBtn, findsOneWidget);
-      await tester.tap(tearBtn);
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 50));
-
-      // 2. Cultivar Creator Screen
-      final hindsiiChip =
-          find.byKey(const ValueKey('cultivar_chip_juglans_hindsii'));
-      expect(hindsiiChip, findsOneWidget);
-      await tester.tap(hindsiiChip);
-      await tester.pump();
-
-      final enterBtn = find.byKey(const ValueKey('enter_orchard_button'));
-      expect(enterBtn, findsOneWidget);
-      await tester.tap(enterBtn);
-      await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      // 3. Wristband HUD Overlays
-      expect(find.byKey(const ValueKey('open_journal_button')), findsOneWidget);
+      // 1. Boots directly into playable Orchard Gate with zero double-splash menu!
+      expect(find.byKey(const ValueKey('tear_ticket_button')), findsNothing);
+      expect(find.byKey(const ValueKey('enter_orchard_button')), findsNothing);
+      expect(find.byKey(const ValueKey('pocket_program_pill')), findsOneWidget);
+
+      // 2. Unfold single Pocket Program pill -> Setlist & Stages tab
+      await tester.tap(find.byKey(const ValueKey('pocket_program_pill')));
+      await tester.pump();
+      expect(find.byKey(const ValueKey('pocket_program_sheet')), findsOneWidget);
       expect(find.byKey(const ValueKey('next_set_button')), findsOneWidget);
       expect(find.byKey(const ValueKey('pure_vibe_button')), findsOneWidget);
       expect(find.byKey(const ValueKey('sway_emote_button')), findsOneWidget);
@@ -240,8 +228,26 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('pure_vibe_button')));
       await tester.pump();
 
-      // 4. Open Vibe Journal & cycle all 4 tabs
-      await tester.tap(find.byKey(const ValueKey('open_journal_button')));
+      // 3. Switch to Cultivar Pouch tab -> select Juglans Hindsii
+      await tester.tap(find.byKey(const ValueKey('program_tab_cultivars')));
+      await tester.pump();
+      final hindsiiChip =
+          find.byKey(const ValueKey('cultivar_chip_juglans_hindsii'));
+      await tester.ensureVisible(hindsiiChip);
+      await tester.tap(hindsiiChip);
+      await tester.pump();
+      expect(container.read(playerProfileProvider).cultivarId, 'juglans_hindsii');
+
+      // 4. Switch to Orchard Map tab -> launch Vibe Journal & cycle tabs
+      await tester.tap(find.byKey(const ValueKey('program_tab_map')));
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey('orchard_program_map_view')),
+        findsOneWidget,
+      );
+      final openJournalBtn = find.byKey(const ValueKey('open_journal_button'));
+      await tester.ensureVisible(openJournalBtn);
+      await tester.tap(openJournalBtn);
       await tester.pump();
       expect(find.byKey(const ValueKey('vibe_journal_modal')), findsOneWidget);
 
@@ -509,11 +515,11 @@ void main() {
     });
 
     testWidgets(
-        'Detailed Onboarding Studio lets player pick new walnut varieties & starter outfits across desktop and mobile viewports',
+        'Orchard Gate diegetic kiosks, Pocket Program Cultivar Pouch, Floating Thumb Joystick, Contextual Bubbles, and Concert Vibe Mode work across 390x844 & 375x667 viewports',
         (tester) async {
       tester.view.devicePixelRatio = 1.0;
-      tester.view.physicalSize = const Size(1280, 720);
-      await tester.binding.setSurfaceSize(const Size(1280, 720));
+      tester.view.physicalSize = const Size(390, 844);
+      await tester.binding.setSurfaceSize(const Size(390, 844));
       addTearDown(() {
         tester.view.resetPhysicalSize();
         tester.view.resetDevicePixelRatio();
@@ -540,50 +546,46 @@ void main() {
         ),
       );
       await tester.pump();
+      await tester.pump(const Duration(milliseconds: 120));
       expect(tester.takeException(), isNull);
 
-      // Check mobile TicketSplashScreen layout cleanly before tearing ticket
-      tester.view.physicalSize = const Size(390, 844);
-      await tester.binding.setSurfaceSize(const Size(390, 844));
-      await tester.pump();
-      expect(tester.takeException(), isNull);
-
-      // Restore desktop & tear ticket stub into Walnut Character & Outfit Studio
-      tester.view.physicalSize = const Size(1280, 720);
-      await tester.binding.setSurfaceSize(const Size(1280, 720));
-      await tester.pump();
-
-      await tester.tap(find.byKey(const ValueKey('tear_ticket_button')));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 50));
-      expect(tester.takeException(), isNull);
-
-      // Verify mobile portrait (390x844) Studio layout has zero overflows
-      tester.view.physicalSize = const Size(390, 844);
-      await tester.binding.setSurfaceSize(const Size(390, 844));
-      await tester.pump();
-      expect(tester.takeException(), isNull);
-
-      // Switch to 960x640 compact laptop viewport & test variety + outfit studio controls
-      tester.view.physicalSize = const Size(960, 640);
-      await tester.binding.setSurfaceSize(const Size(960, 640));
-      await tester.pump();
-      expect(tester.takeException(), isNull);
-
-      // Rotate live preview & toggle groove test dance
-      await tester.tap(find.byKey(const ValueKey('rotate_walnut_right_button')));
-      await tester.pump();
-      await tester.tap(find.byKey(const ValueKey('preview_groove_button')));
-      await tester.pump(const Duration(milliseconds: 40));
-      await tester.tap(find.byKey(const ValueKey('preview_groove_button')));
+      final gameWidget = tester.widget<GameWidget<WalnutstockGame>>(
+        find.byType(GameWidget<WalnutstockGame>),
+      );
+      final game = gameWidget.game!;
+      if (game.player == null) {
+        await game.onLoad();
+        game.onGameResize(Vector2(390, 844));
+      }
+      game.update(0.05);
       await tester.pump();
 
-      // Test Randomize button
-      await tester.tap(find.byKey(const ValueKey('randomize_walnut_button')));
-      await tester.pump();
-      expect(tester.takeException(), isNull);
+      // 1. Verify portrait phone viewports (390x844 iPhone 15 Pro & 375x667 iPhone SE)
+      //    show ONLY the slim Pocket Program pill + diegetic gate badges (no permanent D-pad or interact button!)
+      for (final mobileSize in const [Size(390, 844), Size(375, 667)]) {
+        tester.view.physicalSize = mobileSize;
+        await tester.binding.setSurfaceSize(mobileSize);
+        game.onGameResize(Vector2(mobileSize.width, mobileSize.height));
+        game.update(0.05);
+        await tester.pump();
+        expect(tester.takeException(), isNull);
+        expect(find.byKey(const ValueKey('pocket_program_pill')), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('orchard_gate_lineup_kiosk')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('orchard_gate_cultivar_booth')),
+          findsOneWidget,
+        );
+        expect(find.byKey(const ValueKey('world_context_bubble')), findsNothing);
+      }
 
-      // Pick new Japonica Heartnut variety + Royal Velvet Bellbottom Coat outfit
+      // 2. Tap Right Diegetic Gate Badge (Cultivar Booth) -> pick Japonica Heartnut & Velvet Bellbottom Coat!
+      await tester.tap(find.byKey(const ValueKey('orchard_gate_cultivar_booth')));
+      await tester.pump();
+      expect(find.byKey(const ValueKey('pocket_program_sheet')), findsOneWidget);
+
       final heartnutChip =
           find.byKey(const ValueKey('cultivar_chip_japonica_heartnut'));
       await tester.ensureVisible(heartnutChip);
@@ -592,6 +594,10 @@ void main() {
       expect(
         container.read(playerProfileProvider).cultivarId,
         'japonica_heartnut',
+      );
+      expect(
+        container.read(playerProfileProvider).discoveredCultivarIds,
+        contains('japonica_heartnut'),
       );
 
       final velvetCoatChip =
@@ -603,26 +609,77 @@ void main() {
         container.read(playerProfileProvider).equippedWardrobeId,
         'velvet_bellbottom_coat',
       );
-
-      // Step into the Free Orchard and confirm both variety & outfit persist!
-      await tester.tap(find.byKey(const ValueKey('enter_orchard_button')));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
-      expect(tester.takeException(), isNull);
-
-      final confirmedProfile = container.read(playerProfileProvider);
-      expect(confirmedProfile.cultivarConfirmed, isTrue);
-      expect(confirmedProfile.cultivarId, 'japonica_heartnut');
-      expect(confirmedProfile.equippedWardrobeId, 'velvet_bellbottom_coat');
       expect(saveRepo.loadPrimary()?.profile.cultivarId, 'japonica_heartnut');
       expect(
         saveRepo.loadPrimary()?.profile.equippedWardrobeId,
         'velvet_bellbottom_coat',
       );
+
+      await tester.tap(find.byKey(const ValueKey('close_pocket_program_button')));
+      await tester.pump();
+
+      // 3. Test Invisible Floating Thumb Joystick: drag north -> ring appears -> release -> ring fades out!
+      expect(find.byKey(const ValueKey('floating_thumb_ring')), findsNothing);
+      final gesture = await tester.startGesture(const Offset(185, 500));
+      await gesture.moveBy(const Offset(0, -42));
+      await tester.pump();
+      expect(find.byKey(const ValueKey('floating_thumb_ring')), findsOneWidget);
+      expect(
+        game.inputController.sampleMovementAndGamepad().move.y,
+        lessThan(-0.5),
+      );
+      await gesture.up();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 220));
+      expect(find.byKey(const ValueKey('floating_thumb_ring')), findsNothing);
+      expect(game.inputController.sampleMovementAndGamepad().move.length, 0.0);
+
+      // 4. Context-Only World Bubble + Heritage Cultivar Discovery + 2.5s Toast!
+      // Step beside the Hartley Heritage Cultivar Tree at (744, 520)
+      game.teleportPlayer(744.0, 540.0);
+      game.update(0.05);
+      await tester.pump();
+      expect(find.byKey(const ValueKey('world_context_bubble')), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('world_context_bubble')));
+      await tester.pump();
+      expect(
+        container.read(playerProfileProvider).discoveredCultivarIds,
+        contains('hartley'),
+      );
+      expect(find.byKey(const ValueKey('festival_toast_banner')), findsOneWidget);
+
+      // Walk away into open grass -> world_context_bubble hides immediately!
+      game.teleportPlayer(660.0, 620.0);
+      game.update(0.05);
+      await tester.pump();
+      expect(find.byKey(const ValueKey('world_context_bubble')), findsNothing);
+
+      // Wait 2.6s -> toast auto-clears!
+      await tester.pump(const Duration(milliseconds: 2600));
+      expect(find.byKey(const ValueKey('festival_toast_banner')), findsNothing);
+
+      // 5. Concert Vibe Mode: stand near live Main Roots Stage (608, 448) idle >= 2.5s -> top pill dims, touch wakes!
+      game.teleportPlayer(608.0, 464.0);
+      game.update(0.1);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 2800));
+      final dimmedOpacity = tester.widget<AnimatedOpacity>(
+        find.byKey(const ValueKey('concert_vibe_hud_opacity')),
+      );
+      expect(dimmedOpacity.opacity, closeTo(0.15, 0.05));
+
+      // Touch canvas -> Concert Vibe Mode wakes immediately back to 1.0!
+      await tester.tapAt(const Offset(180, 420));
+      await tester.pump();
+      final wokenOpacity = tester.widget<AnimatedOpacity>(
+        find.byKey(const ValueKey('concert_vibe_hud_opacity')),
+      );
+      expect(wokenOpacity.opacity, equals(1.0));
     });
 
     testWidgets(
-        'WristbandHud Dance & Move buttons and B/N keyboard shortcuts toggle dancing and cycle all 4 dance moves',
+        'Pocket Program Dance & Move buttons and B/N keyboard shortcuts toggle dancing and cycle all 4 dance moves',
         (tester) async {
       tester.view.devicePixelRatio = 1.0;
       tester.view.physicalSize = const Size(1280, 720);
@@ -665,7 +722,9 @@ void main() {
       await tester.pump(const Duration(milliseconds: 120));
       expect(tester.takeException(), isNull);
 
-      // 1. Dance button is immediately visible without any quest unlock!
+      // 1. Unfold Pocket Program pill -> Dance button is immediately visible!
+      await tester.tap(find.byKey(const ValueKey('pocket_program_pill')));
+      await tester.pump();
       final danceBtn = find.byKey(const ValueKey('dance_groove_button'));
       expect(danceBtn, findsOneWidget);
       expect(find.byKey(const ValueKey('dance_style_button')), findsNothing);
@@ -689,6 +748,10 @@ void main() {
         container.read(worldFlagsProvider).currentDanceStyleLabel,
         'Twist',
       );
+
+      // Close Pocket Program sheet to verify live world keyboard B/N shortcuts
+      await tester.tap(find.byKey(const ValueKey('close_pocket_program_button')));
+      await tester.pump();
 
       // Keyboard N cycles Twist -> Shuffle -> Spin -> Boogie
       await tester.sendKeyDownEvent(LogicalKeyboardKey.keyN);
@@ -726,7 +789,7 @@ void main() {
       await tester.sendKeyUpEvent(LogicalKeyboardKey.keyB);
       expect(container.read(worldFlagsProvider).playerDancing, isTrue);
 
-      // Verify mobile portrait HUD with both Dance & Move chips visible has 0 overflows
+      // Verify mobile portrait HUD + unfolded Pocket Program have 0 overflows
       tester.view.physicalSize = const Size(390, 844);
       await tester.binding.setSurfaceSize(const Size(390, 844));
       await tester.pump();
@@ -868,7 +931,7 @@ void main() {
     });
 
     testWidgets(
-        'Festival Satchel, Quests Tab, Vendor Stall Modals, and Wristband Quick-Item Chip render & interact cleanly across 1280x720, 960x640, and 390x844 viewports',
+        'Festival Satchel, Quests Tab, Vendor Stall Modals, and Pocket Program Quick-Item Chip render & interact cleanly across 1280x720, 960x640, and 390x844 viewports',
         (tester) async {
       tester.view.devicePixelRatio = 1.0;
       tester.view.physicalSize = const Size(1280, 720);
@@ -908,9 +971,13 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      // 1. Wristband Quick-Item chip triggers equipped Soap Bubble Wand cleanly
+      // 1. Pocket Program Cultivar/Satchel tab Quick-Item chip triggers equipped Soap Bubble Wand cleanly
+      await tester.tap(find.byKey(const ValueKey('pocket_program_pill')));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('program_tab_cultivars')));
+      await tester.pump();
       final quickChip = find.byKey(const ValueKey('quick_item_button'));
-      expect(quickChip, findsOneWidget);
+      await tester.ensureVisible(quickChip);
       await tester.tap(quickChip);
       await tester.pump();
       expect(tester.takeException(), isNull);

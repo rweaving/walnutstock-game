@@ -14,6 +14,12 @@ enum ActiveModalOverlay {
   settingsDrawer,
 }
 
+enum PocketProgramTab {
+  setlistAndStages,
+  orchardMap,
+  cultivarAndMix,
+}
+
 class DialogueSession extends Equatable {
   const DialogueSession({
     required this.speakerName,
@@ -60,7 +66,10 @@ class UiOverlayState extends Equatable {
   const UiOverlayState({
     this.dialogue,
     this.modal = ActiveModalOverlay.none,
+    this.pocketProgramOpen = false,
+    this.pocketProgramTab = PocketProgramTab.setlistAndStages,
     this.toastBanner,
+    this.toastSerial = 0,
     this.nearbyInteractPrompt,
     this.turntableTrackNumber,
     this.activeVendorStallId,
@@ -68,13 +77,17 @@ class UiOverlayState extends Equatable {
 
   final DialogueSession? dialogue;
   final ActiveModalOverlay modal;
+  final bool pocketProgramOpen;
+  final PocketProgramTab pocketProgramTab;
   final String? toastBanner;
+  final int toastSerial;
   final String? nearbyInteractPrompt;
   final int? turntableTrackNumber;
   final String? activeVendorStallId;
 
   bool get isBlockingInput =>
       dialogue != null ||
+      pocketProgramOpen ||
       (modal != ActiveModalOverlay.none &&
           modal != ActiveModalOverlay.encoreDeck);
 
@@ -82,7 +95,10 @@ class UiOverlayState extends Equatable {
     DialogueSession? dialogue,
     bool clearDialogue = false,
     ActiveModalOverlay? modal,
+    bool? pocketProgramOpen,
+    PocketProgramTab? pocketProgramTab,
     String? toastBanner,
+    int? toastSerial,
     bool clearToast = false,
     String? nearbyInteractPrompt,
     bool clearPrompt = false,
@@ -94,7 +110,10 @@ class UiOverlayState extends Equatable {
     return UiOverlayState(
       dialogue: clearDialogue ? null : (dialogue ?? this.dialogue),
       modal: modal ?? this.modal,
+      pocketProgramOpen: pocketProgramOpen ?? this.pocketProgramOpen,
+      pocketProgramTab: pocketProgramTab ?? this.pocketProgramTab,
       toastBanner: clearToast ? null : (toastBanner ?? this.toastBanner),
+      toastSerial: toastSerial ?? this.toastSerial,
       nearbyInteractPrompt: clearPrompt
           ? null
           : (nearbyInteractPrompt ?? this.nearbyInteractPrompt),
@@ -111,7 +130,10 @@ class UiOverlayState extends Equatable {
   List<Object?> get props => [
         dialogue,
         modal,
+        pocketProgramOpen,
+        pocketProgramTab,
         toastBanner,
+        toastSerial,
         nearbyInteractPrompt,
         turntableTrackNumber,
         activeVendorStallId,
@@ -123,7 +145,10 @@ class UiOverlayNotifier extends StateNotifier<UiOverlayState> {
 
   void startDialogue(DialogueSession session) {
     if (session.lines.isEmpty) return;
-    state = state.copyWith(dialogue: session);
+    state = state.copyWith(
+      dialogue: session,
+      pocketProgramOpen: false,
+    );
   }
 
   /// Advances to the next page or closes the dialogue box. Returns true if closed.
@@ -139,25 +164,62 @@ class UiOverlayNotifier extends StateNotifier<UiOverlayState> {
   }
 
   void openModal(ActiveModalOverlay modal) {
-    state = state.copyWith(modal: modal);
+    state = state.copyWith(
+      modal: modal,
+      pocketProgramOpen: false,
+    );
   }
 
   void openVendorStall(String stallId) {
     state = state.copyWith(
       modal: ActiveModalOverlay.vendorStall,
       activeVendorStallId: stallId,
+      pocketProgramOpen: false,
     );
   }
 
   void closeModal() {
     state = state.copyWith(
       modal: ActiveModalOverlay.none,
+      pocketProgramOpen: false,
       clearVendorStall: true,
     );
   }
 
+  void openPocketProgram([PocketProgramTab? tab]) {
+    state = state.copyWith(
+      pocketProgramOpen: true,
+      pocketProgramTab: tab ?? state.pocketProgramTab,
+    );
+  }
+
+  void setPocketProgramTab(PocketProgramTab tab) {
+    state = state.copyWith(pocketProgramTab: tab);
+  }
+
+  void togglePocketProgram([PocketProgramTab? tab]) {
+    if (state.pocketProgramOpen &&
+        (tab == null || state.pocketProgramTab == tab)) {
+      state = state.copyWith(pocketProgramOpen: false);
+    } else {
+      state = state.copyWith(
+        pocketProgramOpen: true,
+        pocketProgramTab: tab ?? state.pocketProgramTab,
+      );
+    }
+  }
+
+  void closePocketProgram() {
+    if (state.pocketProgramOpen) {
+      state = state.copyWith(pocketProgramOpen: false);
+    }
+  }
+
   void showToast(String message) {
-    state = state.copyWith(toastBanner: message);
+    state = state.copyWith(
+      toastBanner: message,
+      toastSerial: state.toastSerial + 1,
+    );
   }
 
   void clearToast() {

@@ -9,10 +9,11 @@ class PlayerProfile extends Equatable {
     this.cultivarId = 'chandler',
     this.equippedWardrobeId = 'tie_dye_tee',
     this.unlockedWardrobeIds = starterWardrobeIds,
+    Set<String>? discoveredCultivarIds,
     this.savedX = 608.0,
     this.savedY = 1344.0,
     this.activeZoneName = 'Front Gate & Broken Fences',
-  });
+  }) : discoveredCultivarIds = discoveredCultivarIds ?? const {'chandler'};
 
   static const Set<String> starterWardrobeIds = {
     'none',
@@ -34,6 +35,13 @@ class PlayerProfile extends Equatable {
         ? starterWardrobeIds
         : {...starterWardrobeIds, ...rawUnlocked.map((e) => e.toString())};
 
+    final activeCultivar = json['cultivarId'] as String? ?? 'chandler';
+    final rawDiscovered = json['discoveredCultivarIds'] as List<dynamic>?;
+    final discovered = <String>{
+      activeCultivar,
+      if (rawDiscovered != null) ...rawDiscovered.map((e) => e.toString()),
+    };
+
     var x = (json['savedX'] as num?)?.toDouble() ??
         (schemaVersion < 2 ? 304.0 : 608.0);
     var y = (json['savedY'] as num?)?.toDouble() ??
@@ -54,9 +62,10 @@ class PlayerProfile extends Equatable {
       guestName: (json['guestName'] as String?)?.trim().isNotEmpty == true
           ? (json['guestName'] as String).trim()
           : 'Sunny Kernel',
-      cultivarId: json['cultivarId'] as String? ?? 'chandler',
+      cultivarId: activeCultivar,
       equippedWardrobeId: json['equippedWardrobeId'] as String? ?? 'moss_band',
       unlockedWardrobeIds: unlocked,
+      discoveredCultivarIds: discovered,
       savedX: x,
       savedY: y,
       activeZoneName:
@@ -70,9 +79,14 @@ class PlayerProfile extends Equatable {
   final String cultivarId;
   final String equippedWardrobeId;
   final Set<String> unlockedWardrobeIds;
+  final Set<String> discoveredCultivarIds;
   final double savedX;
   final double savedY;
   final String activeZoneName;
+
+  /// True when the player has walked past the Orchard Gate into the festival grounds.
+  bool get hasActiveInOrchardPosition =>
+      savedY < 1236.0 || (savedX - 608.0).abs() > 36.0;
 
   PlayerProfile copyWith({
     bool? ticketTorn,
@@ -81,17 +95,24 @@ class PlayerProfile extends Equatable {
     String? cultivarId,
     String? equippedWardrobeId,
     Set<String>? unlockedWardrobeIds,
+    Set<String>? discoveredCultivarIds,
     double? savedX,
     double? savedY,
     String? activeZoneName,
   }) {
+    final nextCultivar = cultivarId ?? this.cultivarId;
+    final nextDiscovered = <String>{
+      ...(discoveredCultivarIds ?? this.discoveredCultivarIds),
+      nextCultivar,
+    };
     return PlayerProfile(
       ticketTorn: ticketTorn ?? this.ticketTorn,
       cultivarConfirmed: cultivarConfirmed ?? this.cultivarConfirmed,
       guestName: guestName ?? this.guestName,
-      cultivarId: cultivarId ?? this.cultivarId,
+      cultivarId: nextCultivar,
       equippedWardrobeId: equippedWardrobeId ?? this.equippedWardrobeId,
       unlockedWardrobeIds: unlockedWardrobeIds ?? this.unlockedWardrobeIds,
+      discoveredCultivarIds: nextDiscovered,
       savedX: savedX ?? this.savedX,
       savedY: savedY ?? this.savedY,
       activeZoneName: activeZoneName ?? this.activeZoneName,
@@ -105,6 +126,7 @@ class PlayerProfile extends Equatable {
         'cultivarId': cultivarId,
         'equippedWardrobeId': equippedWardrobeId,
         'unlockedWardrobeIds': unlockedWardrobeIds.toList()..sort(),
+        'discoveredCultivarIds': discoveredCultivarIds.toList()..sort(),
         'savedX': savedX,
         'savedY': savedY,
         'activeZoneName': activeZoneName,
@@ -118,6 +140,7 @@ class PlayerProfile extends Equatable {
         cultivarId,
         equippedWardrobeId,
         unlockedWardrobeIds,
+        discoveredCultivarIds,
         savedX,
         savedY,
         activeZoneName,
@@ -134,7 +157,19 @@ class PlayerProfileNotifier extends StateNotifier<PlayerProfile> {
   }
 
   void selectCultivar(String id) {
-    state = state.copyWith(cultivarId: id);
+    state = state.copyWith(
+      cultivarId: id,
+      discoveredCultivarIds: {...state.discoveredCultivarIds, id},
+    );
+  }
+
+  /// Marks a heritage walnut cultivar as discovered. Returns `true` if newly added.
+  bool discoverCultivar(String id) {
+    if (state.discoveredCultivarIds.contains(id)) return false;
+    state = state.copyWith(
+      discoveredCultivarIds: {...state.discoveredCultivarIds, id},
+    );
+    return true;
   }
 
   void setGuestName(String name) {
