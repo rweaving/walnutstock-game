@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../audio/platform_audio_probe.dart';
 import '../state/providers.dart';
 
 class FinaleMontageOverlay extends ConsumerWidget {
@@ -126,6 +127,22 @@ class FinaleMontageOverlay extends ConsumerWidget {
                       label: const Text(
                         'UNLOCK ENDLESS ENCORE FREE-ROAM & FULL VINYL JUKEBOX',
                         style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextButton.icon(
+                    onPressed: openLiterallyInfinitePortal,
+                    icon: const Icon(
+                      Icons.open_in_new,
+                      size: 16,
+                      color: Color(0xFFFFD166),
+                    ),
+                    label: const Text(
+                      'Explore More Music, Almanac & Arcade at Literally Infinite',
+                      style: TextStyle(
+                        color: Color(0xFFFFD166),
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),

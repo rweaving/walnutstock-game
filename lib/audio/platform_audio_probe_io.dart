@@ -37,3 +37,5 @@ Future<String?> cacheTrackProgressive(String trackId, String ext) async {
 }
 
 Future<Uint8List?> fetchCachedWebAudioBytes(String url) async => null;
+
+void openLiterallyInfinitePortal() {}

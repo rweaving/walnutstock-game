@@ -26,6 +26,9 @@ external JSFunction? get _walnutRegisterTearCallbackFn;
 @JS('__walnutIsLoaderActive')
 external JSFunction? get _walnutIsLoaderActiveFn;
 
+@JS('__walnutOpenPortal')
+external JSFunction? get _walnutOpenPortalFn;
+
 @JS('Module_soloud')
 external JSAny? get _windowModuleSoloud;
 
@@ -203,4 +206,10 @@ Future<Uint8List?> fetchCachedWebAudioBytes(String url) async {
     } catch (_) {}
   }
   return null;
+}
+
+void openLiterallyInfinitePortal() {
+  try {
+    _walnutOpenPortalFn?.callAsFunction();
+  } catch (_) {}
 }

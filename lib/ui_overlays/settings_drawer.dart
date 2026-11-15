@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../audio/platform_audio_probe.dart';
 import '../state/dialogue_and_overlay_state.dart';
 import '../state/providers.dart';
 import '../state/settings_state.dart';
@@ -195,6 +196,12 @@ class SettingsAccessibilityDrawer extends ConsumerWidget {
                           .read(uiOverlayProvider.notifier)
                           .openModal(ActiveModalOverlay.finaleMontage),
                       child: const Text('View Credits'),
+                    ),
+                    OutlinedButton.icon(
+                      key: const ValueKey('open_literally_infinite_portal_button'),
+                      onPressed: openLiterallyInfinitePortal,
+                      icon: const Icon(Icons.open_in_new, size: 16),
+                      label: const Text('Literally Infinite Portal'),
                     ),
                   ],
                 ),

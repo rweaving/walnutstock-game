@@ -175,6 +175,48 @@
     }
 
     /* Zone 1: Top Poster Header */
+    .wl-portal-return-bar {
+      position: absolute;
+      top: calc(env(safe-area-inset-top, 0px) + 12px);
+      left: clamp(12px, 3vw, 22px);
+      z-index: 6;
+    }
+
+    .wl-portal-return-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 13px;
+      border-radius: 999px;
+      background: rgba(20, 12, 34, 0.78);
+      border: 1px solid rgba(255, 209, 102, 0.45);
+      color: var(--wl-cream);
+      text-decoration: none;
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+    }
+
+    .wl-portal-return-link:hover,
+    .wl-portal-return-link:focus-visible {
+      background: rgba(43, 24, 58, 0.92);
+      border-color: var(--wl-gold);
+      color: var(--wl-gold);
+      outline: none;
+    }
+
+    @media (max-width: 560px) {
+      .wl-portal-return-bar {
+        position: relative;
+        top: auto;
+        left: auto;
+        margin-bottom: 6px;
+      }
+    }
+
     .wl-poster-header {
       position: relative;
       z-index: 2;
@@ -565,6 +607,18 @@
       <div class="wl-firefly wl-f4"></div>
       <div class="wl-firefly wl-f5"></div>
       <div class="wl-firefly wl-f6"></div>
+
+      <!-- Portal Universe Return Pill -->
+      <div class="wl-portal-return-bar">
+        <a
+          href="https://literally-infinite.web.app/walnutstock/"
+          class="wl-portal-return-link"
+          title="Return to Literally Infinite Portal — Music, Almanac &amp; Walnut Worlds"
+        >
+          <span aria-hidden="true">←</span>
+          <span>Literally Infinite Portal</span>
+        </a>
+      </div>
 
       <!-- Zone 1: Top Poster Header -->
       <header class="wl-poster-header">
@@ -1002,6 +1056,10 @@
 
       window.__walnutIsLoaderActive = function () {
         return !stubTorn && Boolean(document.getElementById('walnut-loader'));
+      };
+
+      window.__walnutOpenPortal = function () {
+        window.open('https://literally-infinite.web.app/walnutstock/', '_blank', 'noopener,noreferrer');
       };
 
       window.__walnutRegisterTearCallback = function (cb) {
