@@ -1039,6 +1039,13 @@ class _SortingPinballOverlayState extends ConsumerState<SortingPinballOverlay>
 
   void _closeModal() {
     ref.read(worldFlagsProvider.notifier).recordPinballScore(_sim.score);
+    if (_sim.score > 0) {
+      final beads = (_sim.score ~/ 300).clamp(1, 8);
+      ref.read(journalStateProvider.notifier).addPeaceBeads(beads);
+      ref.read(uiOverlayProvider.notifier).showToast(
+            '🕹️ Walnut Pinball Score ${_sim.score}! Earned +$beads Peace Beads!',
+          );
+    }
     ref.read(uiOverlayProvider.notifier).closeModal();
   }
 

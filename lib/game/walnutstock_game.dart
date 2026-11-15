@@ -28,6 +28,7 @@ import 'world/astar_pathfinder.dart';
 import 'world/concert_light_show.dart';
 import 'world/day_night_atmosphere.dart';
 import 'world/electric_blueberry_experience_component.dart';
+import 'world/festival_props_component.dart';
 import 'world/mud_experience_component.dart';
 import 'world/stage_3d_rig_component.dart';
 import 'world/tiled_chunk_renderer.dart';
@@ -67,6 +68,7 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
   StagePerformerDirector? _performerDirector;
   MudExperienceController? _mudExperience;
   ElectricBlueberryExperienceController? _blueberryExperience;
+  FestivalPropsComponent? _festivalProps;
   PlayerWalnut? player;
   PsychRockFogZone? _fogZone;
   final List<NpcActor> _npcActors = [];
@@ -90,6 +92,7 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
   MudExperienceController? get mudExperience => _mudExperience;
   ElectricBlueberryExperienceController? get blueberryExperience =>
       _blueberryExperience;
+  FestivalPropsComponent? get festivalProps => _festivalProps;
   double get blueberryVisualBlend => _blueberryVisualBlend;
 
   NpcActor? npcActorById(String id) {
@@ -192,9 +195,15 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
     // Preload tileset, props, totems, cultivars, NPCs & shaders concurrently!
     const tilesetPath = 'assets/images/tiles/orchard_tileset.png';
     const dewPath = 'assets/images/props/dew_drop.png';
+    const beachBallPath = 'assets/images/props/beach_ball.png';
+    const compassPath = 'assets/images/props/compass_glint.png';
+    const blanketPath = 'assets/images/props/picnic_blanket.png';
     final uniqueAssetPaths = <String>{
       tilesetPath,
       dewPath,
+      beachBallPath,
+      compassPath,
+      blanketPath,
       for (final c in data.cultivars) c.sheetAsset,
       for (final npc in data.npcs) npc.sheetAsset,
       for (final perfKey in StagePerformerDirector.ensembleSheetKeys)
@@ -334,6 +343,12 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
       timeGetter: () => _shaderClock,
     );
 
+    _festivalProps = FestivalPropsComponent(
+      beachBallSprite: loadedByPath[beachBallPath]!,
+      compassSprite: loadedByPath[compassPath]!,
+      picnicBlanketSprite: loadedByPath[blanketPath]!,
+    );
+
     final profile = container.read(playerProfileProvider);
     _loadedCultivarId = profile.cultivarId;
     final initialSheet =
@@ -388,6 +403,7 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
     }
 
     await world.add(player!);
+    await world.add(_festivalProps!);
     await world.add(_canopyLayer!);
     await world.add(
       StageOverheadTrussComponent(
@@ -690,9 +706,267 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
         );
   }
 
+  /// Uses or toggles a festival satchel gadget or street-food consumable!
+  bool useEquippedFestivalItem([String? specificItemId]) {
+    final p = player;
+    if (p == null) return false;
+    final journal = container.read(journalStateProvider);
+    final journalN = container.read(journalStateProvider.notifier);
+    final flagsN = container.read(worldFlagsProvider.notifier);
+    final overlayN = container.read(uiOverlayProvider.notifier);
+    final settings = container.read(settingsProvider);
+
+    final targetId = specificItemId ?? journal.equippedGadgetId;
+    if (targetId == null || !journal.hasItem(targetId)) {
+      overlayN.showToast(
+        '🎒 No gadget equipped — chat with Daisy Sprout at the Front Gate or open your Satchel!',
+      );
+      return false;
+    }
+
+    final pos = ui.Offset(p.position.x, p.position.y);
+    final sfxVol = 0.60 * settings.masterVolume * settings.sfxVolume;
+
+    switch (targetId) {
+      case 'gadget_bubble_wand':
+        final inLowGrav =
+            mapData.isLowGravityAtWorld(p.position.x, p.position.y);
+        _festivalProps?.spawnBubbleBurst(pos, lowGravity: inLowGrav);
+        _crowdSway.aura = (_crowdSway.aura + 0.08).clamp(0.0, 1.0);
+        unawaited(
+          audioService.playSfx('assets/audio/sfx/sfx_dew_pickup.wav',
+              volume: sfxVol),
+        );
+        if (inLowGrav && !container.read(worldFlagsProvider).bubbledInDome) {
+          flagsN.update((s) => s.copyWith(bubbledInDome: true));
+          overlayN.showToast(
+            '🫧✨ Zero-Gravity Dome Bubbles! Talk to Astra Hindsii under the Andromeda Dome!',
+          );
+        } else {
+          overlayN.showToast('🫧 Shimmering soap bubbles drift on the breeze!');
+        }
+        return true;
+
+      case 'gadget_polaroid':
+        final liveStage = _nearestLiveStageForCapture(p.position);
+        unawaited(
+          audioService.playSfx('assets/audio/sfx/sfx_bell_cmajor.wav',
+              volume: sfxVol),
+        );
+        if (liveStage != null) {
+          final (stageId, stageName) = liveStage;
+          final isNew = journalN.recordStagePolaroid(stageId);
+          _festivalProps?.spawnPolaroidFlash(pos, stageName);
+          final total =
+              container.read(journalStateProvider).snappedPolaroidStages.length;
+          if (isNew) {
+            journalN.addPeaceBeads(4);
+            overlayN.showToast(
+              '📸 Snapped live Polaroid at $stageName! ($total/3 for Sunny Shellflower, +4 Beads!)',
+            );
+          } else {
+            overlayN.showToast(
+              '📸 Another crisp instant Polaroid at $stageName! ($total stages in Scrapbook)',
+            );
+          }
+        } else {
+          _festivalProps?.spawnPolaroidFlash(pos, 'Orchard');
+          overlayN.showToast(
+            '📸 Click! Walk near any live performing stage and press [Q] to photograph the band!',
+          );
+        }
+        return true;
+
+      case 'gadget_sparkler':
+        flagsN.toggleSparkler();
+        final lit = container.read(worldFlagsProvider).sparklerLit;
+        if (lit) {
+          _festivalProps?.spawnCelebrationSparks(pos);
+          unawaited(
+            audioService.playSfx('assets/audio/sfx/sfx_bell_cmajor.wav',
+                volume: sfxVol),
+          );
+          overlayN.showToast(
+            '🎇 Encore Sparkler lit! Hold it near night stages to start a Concert Lighter Wave!',
+          );
+        } else {
+          overlayN.showToast('🎇 Tucked your Encore Sparkler safely away.');
+        }
+        return true;
+
+      case 'gadget_tambourine':
+        _festivalProps?.spawnTambourineRipple(pos);
+        final vipBonus = journal.hasItem('vip_all_stage_laminate') ? 0.18 : 0.14;
+        _crowdSway.aura = (_crowdSway.aura + vipBonus).clamp(0.0, 1.0);
+        flagsN.setCrowdAura(_crowdSway.aura);
+        unawaited(
+          audioService.playSfx('assets/audio/sfx/sfx_bell_cmajor.wav',
+              volume: sfxVol),
+        );
+        overlayN.showToast('🪘 Chime-chime! Pocket Tambourine boosts Crowd Harmony!');
+        return true;
+
+      case 'gadget_streamers':
+        _festivalProps?.spawnCelebrationSparks(pos);
+        if (!container.read(worldFlagsProvider).playerDancing) {
+          flagsN.togglePlayerDance();
+        }
+        overlayN.showToast(
+          '🪁 Twirled your Rainbow Tie-Dye Streamers right on the beat!',
+        );
+        return true;
+
+      case 'gadget_picnic_blanket':
+        final deployed = flagsN.togglePicnicBlanket(p.position.x, p.position.y);
+        unawaited(
+          audioService.playSfx('assets/audio/sfx/sfx_step_grass.wav',
+              volume: sfxVol),
+        );
+        overlayN.showToast(
+          deployed
+              ? '🧺 Rolled out your cozy Woven Picnic Blanket! Press [Q] again to pack up.'
+              : '🧺 Rolled up your Woven Picnic Blanket into your Satchel!',
+        );
+        return true;
+
+      case 'quest_reel_tape':
+        final liveStage = _nearestLiveStageForCapture(p.position);
+        if (liveStage != null) {
+          final (stageId, stageName) = liveStage;
+          final isNew = journalN.recordBootlegStage(stageId);
+          _festivalProps?.spawnTambourineRipple(
+            pos,
+            accent: const ui.Color(0xFF80FFDB),
+          );
+          unawaited(
+            audioService.playSfx('assets/audio/sfx/sfx_resonator_hum.wav',
+                volume: sfxVol),
+          );
+          final total = container
+              .read(journalStateProvider)
+              .recordedBootlegStages
+              .length;
+          overlayN.showToast(
+            isNew
+                ? '📼 Rolled Reel-to-Reel Bootleg at $stageName! ($total/2 stages for Mateo Cáscara!)'
+                : '📼 Re-dubbed warm crowd tape at $stageName ($total/2 stages captured)!',
+          );
+        } else {
+          overlayN.showToast(
+            '📼 Stand within 360px of an active live stage and press [Q] to record crowd stems!',
+          );
+        }
+        return true;
+
+      case 'food_falafel_wrap':
+        if (!journalN.consumeItem(targetId)) return false;
+        flagsN.applyFoodBuff(
+          label: '🥙 Falafel Stride (+22%)',
+          speedBonus: 0.22,
+          speedDuration: 180.0,
+          auraBoost: 0.12,
+        );
+        _crowdSway.aura = (_crowdSway.aura + 0.12).clamp(0.0, 1.0);
+        _festivalProps?.spawnCelebrationSparks(pos);
+        overlayN.showToast(
+          '🥙 Warm Tahini Falafel! +22% Move Speed for 3 minutes!',
+        );
+        return true;
+
+      case 'drink_persimmon_cider':
+        if (!journalN.consumeItem(targetId)) return false;
+        flagsN.applyFoodBuff(
+          label: '🍎 Cider Mud-Grip',
+          mudGripDuration: 180.0,
+          auraBoost: 0.10,
+        );
+        _crowdSway.aura = (_crowdSway.aura + 0.10).clamp(0.0, 1.0);
+        _festivalProps?.spawnCelebrationSparks(pos);
+        overlayN.showToast(
+          '🍎 Spiced Persimmon Cider! Sure-footed mud-slip immunity for 3 minutes!',
+        );
+        return true;
+
+      case 'drink_velvet_espresso':
+        if (!journalN.consumeItem(targetId)) return false;
+        flagsN.applyFoodBuff(
+          label: '☕ Espresso Turbo (+30%)',
+          speedBonus: 0.30,
+          speedDuration: 120.0,
+          auraBoost: 0.10,
+        );
+        _festivalProps?.spawnCelebrationSparks(pos);
+        overlayN.showToast(
+          '☕ Double Tulare Espresso! +30% Turbo Stride for 2 minutes!',
+        );
+        return true;
+
+      case 'drink_chamomile_tea':
+        if (!journalN.consumeItem(targetId)) return false;
+        flagsN.applyFoodBuff(
+          label: '🫖 Firefly Calm',
+          fireflyDuration: 180.0,
+          auraBoost: 0.16,
+        );
+        _crowdSway.aura = (_crowdSway.aura + 0.16).clamp(0.0, 1.0);
+        _festivalProps?.spawnCelebrationSparks(pos);
+        overlayN.showToast(
+          '🫖 Chamomile Firefly Tea! Glowing fireflies orbit your shell for 3 minutes!',
+        );
+        return true;
+
+      case 'food_candied_walnuts':
+        if (!journalN.consumeItem(targetId)) return false;
+        flagsN.applyFoodBuff(
+          label: '🥨 Sweet Harmony',
+          auraBoost: 0.45,
+        );
+        _crowdSway.aura = (_crowdSway.aura + 0.45).clamp(0.0, 1.0);
+        _festivalProps?.spawnCelebrationSparks(pos);
+        overlayN.showToast(
+          '🥨 Maple Candied Walnuts! +45% Crowd Harmony Aura!',
+        );
+        return true;
+
+      default:
+        final spec = data.itemById(targetId);
+        overlayN.showToast(
+          spec?.effectSummary ?? 'Keepsake tucked safely in your Satchel!',
+        );
+        return false;
+    }
+  }
+
+  (String, String)? _nearestLiveStageForCapture(Vector2 fromPos) {
+    final clock = container.read(festivalClockProvider);
+    final activeStageIds = <String>{
+      ...liveStageIds,
+      for (final t in data.setlist.activeTracksAt(clock.day, clock.minuteOfDay))
+        if (!t.isPaBroadcast && t.stageId != 'pa_global_horn') t.stageId,
+    };
+    (String, String)? best;
+    var bestDist = 360.0;
+    for (final stageId in activeStageIds) {
+      final st = data.setlist.stages[stageId];
+      if (st == null) continue;
+      final d = math.sqrt(
+        math.pow(st.x - fromPos.x, 2) + math.pow(st.y - fromPos.y, 2),
+      );
+      if (d <= bestDist) {
+        bestDist = d;
+        best = (stageId, st.name);
+      }
+    }
+    return best;
+  }
+
   void _dispatchInputAction(String action) {
     if (action == 'journal') {
       container.read(journalStateProvider.notifier).toggleJournal();
+      return;
+    }
+    if (action == 'use_gadget') {
+      useEquippedFestivalItem();
       return;
     }
     if (action == 'dance') {
@@ -767,11 +1041,12 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
     final journalOpen = container.read(journalStateProvider).isOpen;
     final blocked = overlay.isBlockingInput || journalOpen;
 
-    // 1. Advance 3-Day Festival Clock
+    // 1. Advance 3-Day Festival Clock & Active Food Buff Timers
     final wasEncoreUnlocked =
         container.read(festivalClockProvider).encoreModeUnlocked;
     if (!blocked) {
       container.read(festivalClockProvider.notifier).tickRealSeconds(dt);
+      container.read(worldFlagsProvider.notifier).tickBuffTimers(dt);
     }
     final clock = container.read(festivalClockProvider);
     final settings = container.read(settingsProvider);
@@ -863,11 +1138,17 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
       _dispatchInputAction(sampled.gamepadAction!);
     }
     final currentFlags = container.read(worldFlagsProvider);
+    final currentJournal = container.read(journalStateProvider);
     p.isSwaying = currentFlags.playerSwaying;
     p.isDancing = currentFlags.playerDancing;
     p.danceStyle = currentFlags.playerDanceStyle;
     p.lowGravityEnhanced = currentFlags.cosmoQuestCompleted;
     p.equippedWardrobeId = profile.equippedWardrobeId;
+    p.speedMultiplier = currentFlags.activeSpeedMultiplier;
+    p.mudGripActive = currentFlags.mudGripActive;
+    p.fireflyAuraActive = currentFlags.fireflyAuraActive;
+    p.equippedGadgetId = currentJournal.equippedGadgetId;
+    p.sparklerLit = currentFlags.sparklerLit;
 
     final stepSurface = p.stepPhysics(
       dt: dt,
@@ -977,9 +1258,12 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
             );
       },
       onTrackHeardStamp: (heard) {
-        container
+        final newlyStamped = container
             .read(journalStateProvider.notifier)
             .stampTrack(heard.trackNumber);
+        if (newlyStamped) {
+          container.read(journalStateProvider.notifier).addPeaceBeads(5);
+        }
       },
     );
 
@@ -1016,6 +1300,14 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
       pureVibeMode: clock.pureVibeMode,
       justListenMode: updatedFlags.justListenStageMode,
     );
+    if (container
+            .read(journalStateProvider)
+            .hasItem('vip_all_stage_laminate') &&
+        ((audioSnap.primaryMix?.gain ?? 0.0) > 0.05 ||
+            updatedFlags.playerDancing ||
+            updatedFlags.playerSwaying)) {
+      _crowdSway.aura = (_crowdSway.aura + dt * 0.045).clamp(0.0, 1.0);
+    }
     p.crowdAura = _crowdSway.aura;
     if ((_crowdSway.aura - updatedFlags.crowdAura).abs() > 0.05) {
       container.read(worldFlagsProvider.notifier).setCrowdAura(_crowdSway.aura);
@@ -1024,7 +1316,11 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
     camera.viewfinder.zoom +=
         (desiredZoom - camera.viewfinder.zoom) * (dt * 3.0).clamp(0.0, 1.0);
 
-    // 6. Step all 34 NPC AI routines (including on-stage performers & beat-synced stage dancers!)
+    // 6. Step all 34 NPC AI routines (including on-stage performers, quest badges, & lighter wave!)
+    final latestJournal = container.read(journalStateProvider);
+    final crowdDancers = <ui.Offset>[];
+    final nightSparklerWave =
+        updatedFlags.sparklerLit && _dayNightMetrics.darknessFactor > 0.08;
     for (final actor in _npcActors) {
       final dist = actor.position.distanceTo(p.position);
       final nearStage = _nearestLiveStageEntry(actor.position);
@@ -1039,6 +1335,84 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
         nearbyStageShow: nearStage?.$2.show,
         playerDancingNearby: updatedFlags.playerDancing,
       );
+      if (actor.isDancingNearStage) {
+        crowdDancers.add(ui.Offset(actor.position.x, actor.position.y));
+      }
+      actor.holdingConcertLighter =
+          nightSparklerWave && actor.isDancingNearStage && dist <= 260.0;
+
+      // Sync overhead quest status badge (! or ★)
+      String? badge;
+      final qId = actor.spec.questId;
+      if (qId != null) {
+        final st = updatedFlags.questStatusFor(
+          qId,
+          latestJournal,
+          currentDay: clock.day,
+          encoreUnlocked: clock.encoreModeUnlocked,
+        );
+        if (st == 'ready' || st == 'available') {
+          badge = st;
+        }
+      } else if (actor.spec.id == 'daisy_dewdrop' &&
+          (!updatedFlags.daisyFreeBubblesGifted ||
+              (updatedFlags.pennyTapestryQuestStarted &&
+                  !updatedFlags.fabricSwatches
+                      .contains('swatch_gate_petal')))) {
+        badge = 'available';
+      } else if (actor.spec.id == 'clover_husk' &&
+          updatedFlags.pennyTapestryQuestStarted &&
+          !updatedFlags.fabricSwatches.contains('swatch_meadow_clover')) {
+        badge = 'available';
+      } else if (actor.spec.id == 'paloma_hull' &&
+          updatedFlags.pennyTapestryQuestStarted &&
+          !updatedFlags.fabricSwatches.contains('swatch_urbano_gold')) {
+        badge = 'available';
+      } else if (actor.spec.id == 'colin_walnut' &&
+          updatedFlags.roxieStringQuestStarted &&
+          !updatedFlags.roxieStringQuestCompleted &&
+          !updatedFlags.hasNickelString) {
+        badge = 'available';
+      }
+      actor.questBadgeState = badge;
+    }
+
+    // 6a. Step Interactive Festival Props & 3D Crowd Beach Ball Volley!
+    final props = _festivalProps;
+    if (props != null) {
+      props.compassVisible = !updatedFlags.hasBrassCompass &&
+          !updatedFlags.fernCompassQuestCompleted;
+      props.collectedBeadIds = updatedFlags.collectedGroundBeadIds;
+      props.picnicBlanketVisible = updatedFlags.picnicBlanketDeployed;
+      props.picnicBlanketCenter = ui.Offset(
+        updatedFlags.picnicBlanketX,
+        updatedFlags.picnicBlanketY,
+      );
+      final hit = props.stepSimulation(
+        dt: dt,
+        playerPos: ui.Offset(p.position.x, p.position.y),
+        playerVelocity: ui.Offset(p.velocity.x, p.velocity.y),
+        playerDancing: updatedFlags.playerDancing,
+        sparklerLit: updatedFlags.sparklerLit,
+        crowdDancerPositions: crowdDancers,
+      );
+      if (hit != null) {
+        final (rally, _) = hit;
+        container.read(worldFlagsProvider.notifier).recordBeachBallRally(rally);
+        _crowdSway.aura = (_crowdSway.aura + 0.06).clamp(0.0, 1.0);
+        unawaited(
+          audioService.playSfx(
+            'assets/audio/sfx/sfx_dew_pickup.wav',
+            volume: 0.45 * settings.masterVolume * settings.sfxVolume,
+          ),
+        );
+        if (rally % 3 == 0) {
+          container.read(journalStateProvider.notifier).addPeaceBeads(3);
+          container.read(uiOverlayProvider.notifier).showToast(
+                '🏐 Beach Ball Crowd Rally x$rally! +3 Peace Beads!',
+              );
+        }
+      }
     }
 
     // 6b. Step Woodstock Post-Rain Mud Experience (belly-slide trails, 3D mudballs & friendly mud fights!)
@@ -1190,6 +1564,9 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
     return best;
   }
 
+  List<LightSource3D> collectVisibleWorldLights(ui.Rect bounds) =>
+      _collectVisibleWorldLights(bounds);
+
   List<LightSource3D> _collectVisibleWorldLights(ui.Rect bounds) {
     final out = <LightSource3D>[];
     final flags = container.read(worldFlagsProvider);
@@ -1268,6 +1645,18 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
           radius: 40.0 + p.crowdAura * 28.0,
           color: const ui.Color(0xFFFFE599),
           intensity: 0.48 + p.crowdAura * 0.36,
+        ),
+      );
+    }
+
+    // 4b. Handheld Encore Sparkler warm golden concert light cone!
+    if (p != null && flags.sparklerLit) {
+      out.add(
+        LightSource3D(
+          position: ui.Offset(p.position.x + 8.0, p.position.y - 12.0),
+          radius: 84.0,
+          color: const ui.Color(0xFFFFBE0B),
+          intensity: 0.94,
         ),
       );
     }
@@ -1355,11 +1744,36 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
         if (dist < 24.0) {
           container.read(journalStateProvider.notifier).collectTotem(totem.id);
           container.read(journalStateProvider.notifier).addItem(totem.name);
+          container.read(journalStateProvider.notifier).addPeaceBeads(8);
           unawaited(
             audioService.playSfx('assets/audio/sfx/sfx_quest_complete.wav'),
           );
           container.read(uiOverlayProvider.notifier).showToast(
-                '🗿 Discovered 3D Totem: ${totem.name} (${journal.collectedTotemIds.length + 1}/8)!',
+                '🗿 Discovered 3D Totem: ${totem.name} (${journal.collectedTotemIds.length + 1}/8) +8 Beads!',
+              );
+        }
+      }
+    }
+
+    // Dropped Peace Bead strands along festival paths
+    final latestFlags = container.read(worldFlagsProvider);
+    for (final spot in FestivalPropsComponent.peaceBeadSpots) {
+      if (!latestFlags.collectedGroundBeadIds.contains(spot.id)) {
+        final dist = math.sqrt(
+          math.pow(pos.x - spot.x, 2) + math.pow(pos.y - spot.y, 2),
+        );
+        if (dist < 22.0) {
+          container
+              .read(worldFlagsProvider.notifier)
+              .collectGroundBead(spot.id);
+          container
+              .read(journalStateProvider.notifier)
+              .addPeaceBeads(spot.amount);
+          unawaited(
+            audioService.playSfx('assets/audio/sfx/sfx_dew_pickup.wav'),
+          );
+          container.read(uiOverlayProvider.notifier).showToast(
+                '📿 Found +${spot.amount} Peace Beads on the orchard path!',
               );
         }
       }
@@ -1405,6 +1819,11 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
         'pinball_cabinet' => 'Play Pinball Wizard (Optical Sorter) [E]',
         'sorting_belt_console' => 'Play Sorting Belt Blues [E]',
         'artifact_booth' => 'Inspect Vintage Vinyl & 3D Totem Booth [E]',
+        'penny_craft_blanket' => "Browse Penny's Craft & Toy Blanket [E]",
+        'colin_curio_crate' => "Browse Colin's Camera & Curio Crate [E]",
+        'street_food_cart' => 'Order Festival Street Food & Cider [E]',
+        'bulletin_lost_found' => 'Read Orchard Bulletin & Lost-and-Found [E]',
+        'lost_brass_compass' => 'Pick Up Glinting Brass Compass [E]',
         _ => 'Inspect Sound Terminal [E]',
       };
       container.read(uiOverlayProvider.notifier).setNearbyPrompt(label);
@@ -1440,9 +1859,14 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
     Vector2 pos, {
     required double maxRadius,
   }) {
+    final flags = container.read(worldFlagsProvider);
     MapObjectZone? best;
     var bestDist = maxRadius;
     for (final obj in mapData.interactables) {
+      if (obj.name == 'lost_brass_compass' &&
+          (flags.hasBrassCompass || flags.fernCompassQuestCompleted)) {
+        continue;
+      }
       final clampedX = pos.x.clamp(obj.rect.left, obj.rect.right);
       final clampedY = pos.y.clamp(obj.rect.top, obj.rect.bottom);
       final dx = clampedX - pos.x;
@@ -1503,8 +1927,24 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
     unawaited(audioService.playSfx(sfx, volume: 0.42));
   }
 
-  void _completeQuestFanfare(String npcId) {
-    container.read(journalStateProvider.notifier).unlockHiddenDetail(npcId);
+  void _completeQuestFanfare(String npcId, {int beadReward = 15}) {
+    final journalN = container.read(journalStateProvider.notifier);
+    journalN.unlockHiddenDetail(npcId);
+    if (beadReward > 0) {
+      journalN.addPeaceBeads(beadReward);
+    }
+    if (container.read(worldFlagsProvider).completedQuestCount >= 5 &&
+        !container
+            .read(journalStateProvider)
+            .hasItem('vip_all_stage_laminate')) {
+      journalN.grantItem(
+        'vip_all_stage_laminate',
+        displayLabel: 'VIP All-Stage Laminate',
+      );
+      container.read(uiOverlayProvider.notifier).showToast(
+            '🎟️ 5 Quests Completed! Earned VIP All-Stage Laminate (+25% Aura & Stall Discounts)!',
+          );
+    }
     unawaited(
       audioService.playSfx('assets/audio/sfx/sfx_quest_complete.wav',
           volume: 0.7),
@@ -1516,6 +1956,7 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
     container.read(journalStateProvider.notifier).markNpcMet(npc.id);
     final flags = container.read(worldFlagsProvider);
     final flagsN = container.read(worldFlagsProvider.notifier);
+    final journal = container.read(journalStateProvider);
     final journalN = container.read(journalStateProvider.notifier);
     final profileN = container.read(playerProfileProvider.notifier);
     final clock = container.read(festivalClockProvider);
@@ -1715,6 +2156,269 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
         journalN.unlockHiddenDetail(npc.id);
         break;
 
+      case 'daisy_dewdrop':
+        if (!flags.daisyFreeBubblesGifted) {
+          flagsN.update((s) => s.copyWith(daisyFreeBubblesGifted: true));
+          journalN.grantItem(
+            'gadget_bubble_wand',
+            autoEquipGadget: true,
+            displayLabel: 'Soap Bubble Wand',
+          );
+          if (flags.pennyTapestryQuestStarted &&
+              !flags.fabricSwatches.contains('swatch_gate_petal')) {
+            flagsN.addFabricSwatch('swatch_gate_petal');
+            journalN.grantItem(
+              'swatch_gate_petal',
+              displayLabel: 'Gatehouse Petal Swatch',
+            );
+          }
+          unawaited(
+              audioService.playSfx('assets/audio/sfx/sfx_dew_pickup.wav'));
+          lines = npc.dialogue['welcome_gift']!;
+        } else if (flags.pennyTapestryQuestStarted &&
+            !flags.fabricSwatches.contains('swatch_gate_petal')) {
+          flagsN.addFabricSwatch('swatch_gate_petal');
+          journalN.grantItem(
+            'swatch_gate_petal',
+            displayLabel: 'Gatehouse Petal Swatch',
+          );
+          unawaited(
+              audioService.playSfx('assets/audio/sfx/sfx_dew_pickup.wav'));
+          lines = npc.dialogue['swatch_gift']!;
+        } else {
+          journalN.unlockHiddenDetail(npc.id);
+        }
+        break;
+
+      case 'clover_husk':
+        if (flags.pennyTapestryQuestStarted &&
+            !flags.fabricSwatches.contains('swatch_meadow_clover')) {
+          flagsN.addFabricSwatch('swatch_meadow_clover');
+          journalN.grantItem(
+            'swatch_meadow_clover',
+            displayLabel: 'Creekside Clover Swatch',
+          );
+          unawaited(
+              audioService.playSfx('assets/audio/sfx/sfx_dew_pickup.wav'));
+          lines = npc.dialogue['swatch_gift']!;
+        } else {
+          journalN.unlockHiddenDetail(npc.id);
+        }
+        break;
+
+      case 'paloma_hull':
+        if (flags.pennyTapestryQuestStarted &&
+            !flags.fabricSwatches.contains('swatch_urbano_gold')) {
+          flagsN.addFabricSwatch('swatch_urbano_gold');
+          journalN.grantItem(
+            'swatch_urbano_gold',
+            displayLabel: 'Santurce Gold Swatch',
+          );
+          unawaited(
+              audioService.playSfx('assets/audio/sfx/sfx_dew_pickup.wav'));
+          lines = npc.dialogue['swatch_gift']!;
+        } else {
+          journalN.unlockHiddenDetail(npc.id);
+        }
+        break;
+
+      case 'colin_walnut':
+        if (flags.roxieStringQuestStarted &&
+            !flags.roxieStringQuestCompleted &&
+            !flags.hasNickelString) {
+          flagsN.update((s) => s.copyWith(hasNickelString: true));
+          journalN.grantItem(
+            'quest_nickel_string',
+            displayLabel: 'Spare Nickel Guitar String',
+          );
+          unawaited(
+              audioService.playSfx('assets/audio/sfx/sfx_lute_gmajor.wav'));
+          lines = npc.dialogue['string_pickup']!;
+        } else {
+          journalN.unlockHiddenDetail(npc.id);
+        }
+        break;
+
+      case 'sunny_shellflower':
+        if (flags.sunnyPhotoQuestCompleted) {
+          lines = npc.dialogue['completed']!;
+        } else if (!flags.sunnyPhotoQuestStarted) {
+          flagsN.update((s) => s.copyWith(sunnyPhotoQuestStarted: true));
+          journalN.grantItem(
+            'gadget_polaroid',
+            autoEquipGadget: true,
+            displayLabel: "Instamatic '69 Camera",
+          );
+          lines = npc.dialogue['intro']!;
+        } else if (journal.snappedPolaroidStages.length >= 3) {
+          flagsN.update((s) => s.copyWith(sunnyPhotoQuestCompleted: true));
+          profileN.unlockWardrobe('press_photographer_vest');
+          journalN.grantItem(
+            'gadget_tambourine',
+            displayLabel: 'Pocket Tambourine',
+          );
+          _completeQuestFanfare(npc.id, beadReward: 20);
+          lines = npc.dialogue['ready_to_turn_in']!;
+        } else {
+          lines = npc.dialogue['in_progress']!;
+        }
+        break;
+
+      case 'roxie_roast':
+        if (flags.roxieStringQuestCompleted) {
+          lines = npc.dialogue['completed']!;
+        } else if (!flags.roxieStringQuestStarted) {
+          flagsN.update((s) => s.copyWith(roxieStringQuestStarted: true));
+          lines = npc.dialogue['intro']!;
+        } else if (flags.hasNickelString ||
+            journal.hasItem('quest_nickel_string')) {
+          journalN.consumeItem('quest_nickel_string');
+          flagsN.update((s) => s.copyWith(roxieStringQuestCompleted: true));
+          journalN.grantItem(
+            'gadget_sparkler',
+            autoEquipGadget: true,
+            displayLabel: 'Encore Sparkler',
+          );
+          _completeQuestFanfare(npc.id, beadReward: 15);
+          lines = npc.dialogue['ready_to_turn_in']!;
+        } else {
+          lines = npc.dialogue['in_progress']!;
+        }
+        break;
+
+      case 'penny_patchwork':
+        if (flags.pennyTapestryQuestCompleted) {
+          lines = npc.dialogue['completed']!;
+        } else if (!flags.pennyTapestryQuestStarted) {
+          flagsN.update((s) => s.copyWith(pennyTapestryQuestStarted: true));
+          lines = npc.dialogue['intro']!;
+        } else if (flags.fabricSwatches.length >= 3) {
+          journalN.consumeItem('swatch_gate_petal');
+          journalN.consumeItem('swatch_meadow_clover');
+          journalN.consumeItem('swatch_urbano_gold');
+          flagsN.update((s) => s.copyWith(pennyTapestryQuestCompleted: true));
+          profileN.unlockWardrobe('artisan_patchwork_cape');
+          journalN.grantItem(
+            'gadget_picnic_blanket',
+            displayLabel: 'Woven Picnic Blanket',
+          );
+          _completeQuestFanfare(npc.id, beadReward: 20);
+          lines = npc.dialogue['ready_to_turn_in']!;
+        } else {
+          lines = npc.dialogue['in_progress']!;
+        }
+        break;
+
+      case 'mateo_cascara':
+        if (flags.mateoTapeQuestCompleted) {
+          lines = npc.dialogue['completed']!;
+        } else if (!flags.mateoTapeQuestStarted) {
+          flagsN.update((s) => s.copyWith(mateoTapeQuestStarted: true));
+          journalN.grantItem(
+            'quest_reel_tape',
+            autoEquipGadget: true,
+            displayLabel: 'Reel-to-Reel Bootleg Tape',
+          );
+          lines = npc.dialogue['intro']!;
+        } else if (journal.recordedBootlegStages.length >= 2) {
+          flagsN.update((s) => s.copyWith(mateoTapeQuestCompleted: true));
+          journalN.collectVinyl('vinyl_bootleg_omega');
+          journalN.addItem('Bootleg 45: Crowd Archive Stems');
+          _completeQuestFanfare(npc.id, beadReward: 20);
+          lines = npc.dialogue['ready_to_turn_in']!;
+        } else {
+          lines = npc.dialogue['in_progress']!;
+        }
+        break;
+
+      case 'fern_whisper':
+        if (flags.fernCompassQuestCompleted) {
+          lines = npc.dialogue['completed']!;
+        } else if (flags.hasBrassCompass ||
+            journal.hasItem('quest_brass_compass')) {
+          journalN.consumeItem('quest_brass_compass');
+          flagsN.update(
+            (s) => s.copyWith(
+              fernCompassQuestStarted: true,
+              fernCompassQuestCompleted: true,
+            ),
+          );
+          journalN.addItem("Fern's Brass Compass Calibration");
+          _completeQuestFanfare(npc.id, beadReward: 15);
+          lines = npc.dialogue['ready_to_turn_in']!;
+        } else if (!flags.fernCompassQuestStarted) {
+          flagsN.update((s) => s.copyWith(fernCompassQuestStarted: true));
+          lines = npc.dialogue['intro']!;
+        } else {
+          lines = npc.dialogue['in_progress']!;
+        }
+        break;
+
+      case 'astra_nebula':
+        if (flags.astraBubbleQuestCompleted) {
+          lines = npc.dialogue['completed']!;
+        } else if (flags.bubbledInDome) {
+          flagsN.update(
+            (s) => s.copyWith(
+              astraBubbleQuestStarted: true,
+              astraBubbleQuestCompleted: true,
+            ),
+          );
+          journalN.grantItem(
+            'gadget_streamers',
+            displayLabel: 'Tie-Dye Streamers',
+          );
+          _completeQuestFanfare(npc.id, beadReward: 20);
+          lines = npc.dialogue['ready_to_turn_in']!;
+        } else if (!flags.astraBubbleQuestStarted) {
+          flagsN.update((s) => s.copyWith(astraBubbleQuestStarted: true));
+          lines = npc.dialogue['intro']!;
+        } else {
+          lines = npc.dialogue['in_progress']!;
+        }
+        break;
+
+      case 'woody_granola':
+        if (flags.woodyMunchiesQuestCompleted) {
+          lines = npc.dialogue['completed']!;
+        } else if (!flags.woodyMunchiesQuestStarted) {
+          flagsN.update((s) => s.copyWith(woodyMunchiesQuestStarted: true));
+          lines = npc.dialogue['intro']!;
+        } else if (journal.hasItem('food_falafel_wrap') &&
+            journal.hasItem('drink_chamomile_tea')) {
+          journalN.consumeItem('food_falafel_wrap');
+          journalN.consumeItem('drink_chamomile_tea');
+          flagsN.update((s) => s.copyWith(woodyMunchiesQuestCompleted: true));
+          profileN.unlockWardrobe('campfire_ranger_hat');
+          journalN.grantItem(
+            'food_candied_walnuts',
+            count: 2,
+            displayLabel: 'Maple Candied Walnuts',
+          );
+          _completeQuestFanfare(npc.id, beadReward: 15);
+          lines = npc.dialogue['ready_to_turn_in']!;
+        } else {
+          lines = npc.dialogue['in_progress']!;
+        }
+        break;
+
+      case 'rusty_pinball':
+        if (flags.rustyArcadeQuestCompleted) {
+          lines = npc.dialogue['completed']!;
+        } else if (!flags.rustyArcadeQuestStarted) {
+          flagsN.update((s) => s.copyWith(rustyArcadeQuestStarted: true));
+          lines = npc.dialogue['intro']!;
+        } else if (flags.pinballHighScore >= 1200 &&
+            flags.sortingBeltHighScore >= 100) {
+          flagsN.update((s) => s.copyWith(rustyArcadeQuestCompleted: true));
+          profileN.unlockWardrobe('pinball_wizard_jacket');
+          _completeQuestFanfare(npc.id, beadReward: 25);
+          lines = npc.dialogue['ready_to_turn_in']!;
+        } else {
+          lines = npc.dialogue['in_progress']!;
+        }
+        break;
+
       default:
         journalN.unlockHiddenDetail(npc.id);
         break;
@@ -1755,6 +2459,37 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
       case 'artifact_booth':
         overlayN.openModal(ActiveModalOverlay.artifactBooth);
         break;
+      case 'street_food_cart':
+        overlayN.openVendorStall('burt_food');
+        break;
+      case 'penny_craft_blanket':
+        overlayN.openVendorStall('penny_crafts');
+        break;
+      case 'colin_curio_crate':
+        overlayN.openVendorStall('colin_curios');
+        break;
+      case 'bulletin_lost_found':
+        overlayN.openVendorStall('bulletin_board');
+        break;
+      case 'lost_brass_compass':
+        if (!flags.hasBrassCompass && !flags.fernCompassQuestCompleted) {
+          flagsN.update(
+            (s) => s.copyWith(
+              fernCompassQuestStarted: true,
+              hasBrassCompass: true,
+            ),
+          );
+          journalN.grantItem(
+            'quest_brass_compass',
+            displayLabel: 'Brass Festival Compass',
+          );
+          unawaited(
+              audioService.playSfx('assets/audio/sfx/sfx_bell_cmajor.wav'));
+          overlayN.showToast(
+            '🧭 Found Fern Whisper-Shell’s Brass Festival Compass! Return it to the Undergrowth entrance!',
+          );
+        }
+        break;
 
       case 'falafel_stand':
         // Quest gating: requires Burt's quest started OR Track 6 truce event!
@@ -1772,8 +2507,7 @@ class WalnutstockGame extends FlameGame with KeyboardEvents, TapCallbacks {
             '🍯 Poured sweet Persimmon Cider! Now talk to Burt Baskernut!',
           );
         } else {
-          overlayN
-              .showToast('Warm tahini falafel & sweet cider—peaceful harmony!');
+          overlayN.openVendorStall('burt_food');
         }
         break;
 

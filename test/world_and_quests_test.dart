@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui' show Offset, Rect;
 import 'package:flame/components.dart' show Vector2;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -12,8 +13,10 @@ import 'package:walnutstock/game/walnutstock_game.dart';
 import 'package:walnutstock/game/world/astar_pathfinder.dart';
 import 'package:walnutstock/game/world/tiled_map_parser.dart';
 import 'package:walnutstock/game/world/world_mutators.dart';
+import 'package:walnutstock/state/journal_state.dart';
 import 'package:walnutstock/state/providers.dart';
 import 'package:walnutstock/state/save_repository.dart';
+import 'package:walnutstock/state/world_flags.dart';
 
 void main() {
   late OrchardMapData map;
@@ -56,11 +59,13 @@ void main() {
     });
 
     test(
-        'all 34 NPCs, 11 Cultivars, 16 Wardrobe outfits, and all 8 3D Totems spawn on non-blocked walkable coordinates',
+        'all 34 NPCs, 11 Cultivars, 20 Wardrobe outfits, 18 Items, 18 Quests, and 8 3D Totems spawn on non-blocked walkable coordinates',
         () {
       expect(bundle.npcs.length, 34);
       expect(bundle.cultivars.length, 11);
-      expect(bundle.wardrobe.length, 16);
+      expect(bundle.wardrobe.length, 20);
+      expect(bundle.items.length, 18);
+      expect(bundle.quests.length, 18);
       expect(bundle.totems.length, 8);
 
       for (final npc in bundle.npcs) {
@@ -69,6 +74,35 @@ void main() {
           isFalse,
           reason:
               'NPC ${npc.id} spawned on blocked tile (${npc.spawnX}, ${npc.spawnY})',
+        );
+        if (npc.questId != null) {
+          expect(
+            bundle.questById(npc.questId!),
+            isNotNull,
+            reason: 'NPC ${npc.id} questId ${npc.questId} missing in quests',
+          );
+        }
+      }
+      for (final q in bundle.quests) {
+        expect(
+          map.isPointBlocked(q.targetX, q.targetY),
+          isFalse,
+          reason:
+              'Quest ${q.id} target (${q.targetX}, ${q.targetY}) is blocked',
+        );
+      }
+      for (final stallName in const [
+        'penny_craft_blanket',
+        'colin_curio_crate',
+        'street_food_cart',
+        'bulletin_lost_found',
+        'lost_brass_compass',
+      ]) {
+        final zone = map.interactables.firstWhere((o) => o.name == stallName);
+        expect(
+          map.isPointBlocked(zone.rect.center.dx, zone.rect.center.dy),
+          isFalse,
+          reason: 'Interactable $stallName center is blocked',
         );
       }
       for (final totem in bundle.totems) {
@@ -318,6 +352,323 @@ void main() {
       expect(container.read(worldFlagsProvider).jimiQuestCompleted, isTrue);
       expect(container.read(journalStateProvider).collectedVinylIds,
           contains('vinyl_side_d'));
+    });
+
+    test(
+        'JournalState and WorldFlags persist all Festival Satchel items, Peace Beads, and 8 new side-quest states cleanly',
+        () {
+      const journal = JournalState(
+        inventoryCounts: {
+          'gadget_bubble_wand': 1,
+          'food_falafel_wrap': 3,
+          'vip_all_stage_laminate': 1,
+        },
+        equippedGadgetId: 'gadget_bubble_wand',
+        peaceBeads: 47,
+        snappedPolaroidStages: {'main_roots', 'velvet_canopy'},
+        recordedBootlegStages: {'urbano_canopy'},
+        trackedQuestId: 'quest_sunny_polaroids',
+      );
+      final roundTripJournal = JournalState.fromJson(journal.toJson());
+      expect(roundTripJournal.inventoryCounts, journal.inventoryCounts);
+      expect(roundTripJournal.equippedGadgetId, 'gadget_bubble_wand');
+      expect(roundTripJournal.peaceBeads, 47);
+      expect(
+        roundTripJournal.snappedPolaroidStages,
+        containsAll(['main_roots', 'velvet_canopy']),
+      );
+      expect(roundTripJournal.recordedBootlegStages, contains('urbano_canopy'));
+      expect(roundTripJournal.trackedQuestId, 'quest_sunny_polaroids');
+
+      const flags = WorldFlags(
+        sunnyPhotoQuestStarted: true,
+        sunnyPhotoQuestCompleted: true,
+        roxieStringQuestStarted: true,
+        hasNickelString: true,
+        roxieStringQuestCompleted: true,
+        pennyTapestryQuestStarted: true,
+        fabricSwatches: {'swatch_gate_petal', 'swatch_meadow_clover'},
+        fernCompassQuestCompleted: true,
+        astraBubbleQuestCompleted: true,
+        woodyMunchiesQuestCompleted: true,
+        rustyArcadeQuestCompleted: true,
+        daisyFreeBubblesGifted: true,
+        beachBallMaxRally: 9,
+        collectedGroundBeadIds: {'beads_gate', 'beads_roots'},
+      );
+      final roundTripFlags = WorldFlags.fromJson(flags.toJson());
+      expect(roundTripFlags.sunnyPhotoQuestCompleted, isTrue);
+      expect(roundTripFlags.roxieStringQuestCompleted, isTrue);
+      expect(roundTripFlags.fabricSwatches.length, 2);
+      expect(roundTripFlags.fernCompassQuestCompleted, isTrue);
+      expect(roundTripFlags.astraBubbleQuestCompleted, isTrue);
+      expect(roundTripFlags.woodyMunchiesQuestCompleted, isTrue);
+      expect(roundTripFlags.rustyArcadeQuestCompleted, isTrue);
+      expect(roundTripFlags.daisyFreeBubblesGifted, isTrue);
+      expect(roundTripFlags.beachBallMaxRally, 9);
+      expect(roundTripFlags.collectedGroundBeadIds, contains('beads_gate'));
+    });
+
+    test(
+        '8 new Festival Side Quests, Satchel Gadgets, Street Food Buffs, Nighttime Sparkler Lighter Wave, and 3D Beach Ball Volley work end-to-end',
+        () async {
+      TestWidgetsFlutterBinding.ensureInitialized();
+      final container = ProviderContainer(
+        overrides: [
+          festivalDataProvider.overrideWithValue(bundle),
+          saveRepositoryProvider.overrideWithValue(SaveRepository()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final game = WalnutstockGame(
+        container: container,
+        data: bundle,
+        mapData: map,
+        audioService: SoloudAudioService(),
+      );
+      game.onGameResize(Vector2(1280, 720));
+      await game.onLoad();
+
+      void closeActiveDialogue() {
+        while (container.read(uiOverlayProvider).dialogue != null) {
+          container.read(uiOverlayProvider.notifier).advanceOrCloseDialogue();
+        }
+      }
+
+      // 1. Daisy Sprout gifts free Soap Bubble Wand -> blow bubbles inside Andromeda Dome -> Astra Hindsii awards Streamers!
+      final daisy = bundle.npcById('daisy_dewdrop')!;
+      game.teleportPlayer(daisy.spawnX, daisy.spawnY + 10);
+      game.handleInteract();
+      closeActiveDialogue();
+      expect(container.read(worldFlagsProvider).daisyFreeBubblesGifted, isTrue);
+      expect(
+        container.read(journalStateProvider).hasItem('gadget_bubble_wand'),
+        isTrue,
+      );
+      expect(
+        container.read(journalStateProvider).equippedGadgetId,
+        'gadget_bubble_wand',
+      );
+
+      final astra = bundle.npcById('astra_nebula')!;
+      game.teleportPlayer(astra.spawnX, astra.spawnY + 10);
+      game.handleInteract();
+      closeActiveDialogue();
+      expect(
+        container.read(worldFlagsProvider).astraBubbleQuestStarted,
+        isTrue,
+      );
+
+      // Step onto low-gravity crystal dome floor & press [Q] (useEquippedFestivalItem)
+      game.teleportPlayer(1760, 352);
+      game.useEquippedFestivalItem();
+      expect(container.read(worldFlagsProvider).bubbledInDome, isTrue);
+
+      game.teleportPlayer(astra.spawnX, astra.spawnY + 10);
+      game.handleInteract();
+      closeActiveDialogue();
+      expect(
+        container.read(worldFlagsProvider).astraBubbleQuestCompleted,
+        isTrue,
+      );
+      expect(
+        container.read(journalStateProvider).hasItem('gadget_streamers'),
+        isTrue,
+      );
+
+      // 2. Roxie Espresso Broken String Emergency -> Colin Shellford -> Encore Sparkler + Nighttime Concert Lighter Wave!
+      final roxie = bundle.npcById('roxie_roast')!;
+      game.teleportPlayer(roxie.spawnX, roxie.spawnY + 10);
+      game.handleInteract();
+      closeActiveDialogue();
+      expect(
+        container.read(worldFlagsProvider).roxieStringQuestStarted,
+        isTrue,
+      );
+
+      final colin = bundle.npcById('colin_walnut')!;
+      game.teleportPlayer(colin.spawnX, colin.spawnY + 10);
+      game.handleInteract();
+      closeActiveDialogue();
+      expect(container.read(worldFlagsProvider).hasNickelString, isTrue);
+      expect(
+        container.read(journalStateProvider).hasItem('quest_nickel_string'),
+        isTrue,
+      );
+
+      game.teleportPlayer(roxie.spawnX, roxie.spawnY + 10);
+      game.handleInteract();
+      closeActiveDialogue();
+      expect(
+        container.read(worldFlagsProvider).roxieStringQuestCompleted,
+        isTrue,
+      );
+      expect(
+        container.read(journalStateProvider).hasItem('gadget_sparkler'),
+        isTrue,
+      );
+
+      // Jump to a nighttime live set at Main Roots & light the Encore Sparkler!
+      final nightTrack = bundle.setlist.tracks.firstWhere(
+        (t) => t.stageId == 'main_roots_stage' && t.startMinute >= 1140,
+      );
+      container.read(festivalClockProvider.notifier).jumpToTrack(nightTrack);
+      game.teleportPlayer(600, 464);
+      game.useEquippedFestivalItem('gadget_sparkler');
+      expect(container.read(worldFlagsProvider).sparklerLit, isTrue);
+      game.update(0.1);
+
+      final worldLights =
+          game.collectVisibleWorldLights(const Rect.fromLTWH(0, 0, 2048, 1536));
+      expect(
+        worldLights.any((l) => l.radius == 84.0),
+        isTrue,
+        reason: 'Lit Encore Sparkler should emit dynamic LightSource3D',
+      );
+      expect(
+        [
+          game.npcActorById('sunny_shellflower'),
+          game.npcActorById('hazel_groove'),
+        ].any((a) => a?.holdingConcertLighter ?? false),
+        isTrue,
+        reason:
+            'Nearby stage dancers should raise concert lighters when player waves Encore Sparkler at night',
+      );
+
+      // 3. Sunny Shellflower Front-Row Press Pass -> Snap Polaroids at 3 live stages -> Press Vest + Tambourine!
+      final sunny = bundle.npcById('sunny_shellflower')!;
+      game.teleportPlayer(sunny.spawnX, sunny.spawnY + 10);
+      game.handleInteract();
+      closeActiveDialogue();
+      expect(container.read(worldFlagsProvider).sunnyPhotoQuestStarted, isTrue);
+      expect(
+        container.read(journalStateProvider).hasItem('gadget_polaroid'),
+        isTrue,
+      );
+
+      for (final stageId in [
+        'main_roots_stage',
+        'mellow_meadow_stage',
+        'velvet_canopy_stage',
+      ]) {
+        final track =
+            bundle.setlist.tracks.firstWhere((t) => t.stageId == stageId);
+        container.read(festivalClockProvider.notifier).jumpToTrack(track);
+        final stage = bundle.setlist.stages[stageId]!;
+        game.teleportPlayer(stage.x, stage.y + 60);
+        game.update(0.05);
+        game.useEquippedFestivalItem('gadget_polaroid');
+      }
+      expect(
+        container.read(journalStateProvider).snappedPolaroidStages.length,
+        3,
+      );
+
+      final sunnyActor = game.npcActorById('sunny_shellflower')!;
+      game.teleportPlayer(sunnyActor.position.x, sunnyActor.position.y + 10);
+      game.handleInteract();
+      closeActiveDialogue();
+      expect(
+        container.read(worldFlagsProvider).sunnyPhotoQuestCompleted,
+        isTrue,
+      );
+      expect(
+        container.read(playerProfileProvider).unlockedWardrobeIds,
+        contains('press_photographer_vest'),
+      );
+      expect(
+        container.read(journalStateProvider).hasItem('gadget_tambourine'),
+        isTrue,
+      );
+
+      // 4. Penny Patchwork Great Festival Tapestry -> 3 swatches -> Picnic Blanket + Artisan Cape!
+      final penny = bundle.npcById('penny_patchwork')!;
+      game.teleportPlayer(penny.spawnX, penny.spawnY + 10);
+      game.handleInteract();
+      closeActiveDialogue();
+      expect(
+        container.read(worldFlagsProvider).pennyTapestryQuestStarted,
+        isTrue,
+      );
+
+      for (final helperId in ['daisy_dewdrop', 'clover_husk', 'paloma_hull']) {
+        final helper = bundle.npcById(helperId)!;
+        game.teleportPlayer(helper.spawnX, helper.spawnY + 10);
+        game.handleInteract();
+        closeActiveDialogue();
+      }
+      expect(container.read(worldFlagsProvider).fabricSwatches.length, 3);
+
+      game.teleportPlayer(penny.spawnX, penny.spawnY + 10);
+      game.handleInteract();
+      closeActiveDialogue();
+      expect(
+        container.read(worldFlagsProvider).pennyTapestryQuestCompleted,
+        isTrue,
+      );
+      expect(
+        container.read(playerProfileProvider).unlockedWardrobeIds,
+        contains('artisan_patchwork_cape'),
+      );
+      expect(
+        container.read(journalStateProvider).hasItem('gadget_picnic_blanket'),
+        isTrue,
+      );
+
+      // Unroll the Woven Picnic Blanket on the grass!
+      game.useEquippedFestivalItem('gadget_picnic_blanket');
+      expect(container.read(worldFlagsProvider).picnicBlanketDeployed, isTrue);
+
+      // 5. Fern Whisper-Shell Lost Compass -> 5th quest unlocks VIP All-Stage Laminate!
+      final compassRect = map.interactables
+          .firstWhere((o) => o.name == 'lost_brass_compass')
+          .rect;
+      game.teleportPlayer(compassRect.center.dx, compassRect.center.dy);
+      game.handleInteract();
+      expect(container.read(worldFlagsProvider).hasBrassCompass, isTrue);
+
+      final fern = bundle.npcById('fern_whisper')!;
+      game.teleportPlayer(fern.spawnX, fern.spawnY + 10);
+      game.handleInteract();
+      closeActiveDialogue();
+      expect(
+        container.read(worldFlagsProvider).fernCompassQuestCompleted,
+        isTrue,
+      );
+      expect(container.read(worldFlagsProvider).completedQuestCount, 5);
+      expect(
+        container.read(journalStateProvider).hasItem('vip_all_stage_laminate'),
+        isTrue,
+      );
+
+      // 6. Street Food Buffs (Falafel speed + Persimmon Cider mud grip) & 3D Crowd Beach Ball Volley!
+      container.read(journalStateProvider.notifier).grantItem(
+            'food_falafel_wrap',
+            count: 1,
+          );
+      container.read(journalStateProvider.notifier).grantItem(
+            'drink_persimmon_cider',
+            count: 1,
+          );
+      game.useEquippedFestivalItem('food_falafel_wrap');
+      expect(
+        container.read(worldFlagsProvider).activeSpeedMultiplier,
+        greaterThan(1.1),
+      );
+      game.useEquippedFestivalItem('drink_persimmon_cider');
+      expect(container.read(worldFlagsProvider).mudGripActive, isTrue);
+
+      // Walk into the Main Roots Crowd Beach Ball to volley it skyward!
+      final ball = game.festivalProps!.beachBalls.first;
+      ball.z = 12.0;
+      ball.playerHitCooldown = 0.0;
+      game.teleportPlayer(ball.x, ball.y);
+      game.update(0.05);
+      expect(
+        container.read(worldFlagsProvider).beachBallMaxRally,
+        greaterThanOrEqualTo(1),
+      );
     });
   });
 }

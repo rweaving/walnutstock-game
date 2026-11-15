@@ -65,6 +65,8 @@ class NpcActor extends PositionComponent {
   double _mudHopTimer = 0.0;
   double _mudReactionTimer = 0.0;
   String? _mudReactionText;
+  String? questBadgeState; // 'available' | 'ready' | null
+  bool holdingConcertLighter = false;
 
   NpcStageMark? get stageMark => _stageMark;
   bool get isDancingNearStage => _audienceGrooving;
@@ -723,6 +725,70 @@ class NpcActor extends PositionComponent {
         minPillWidth: 44.0,
         maxPillWidth: 112.0,
         borderRadius: 5.0,
+      );
+    }
+
+    // Synchronized Nighttime Concert Lighter Wave when player raises Encore Sparkler!
+    if (holdingConcertLighter && !performing) {
+      final swayLight = math.sin(_animClock * 4.2 + npcPhaseIdx) * 2.2;
+      final lx = 24.0 + totalX + swayLight;
+      final ly = 9.0 - totalLiftY;
+      final flick = 0.82 + 0.22 * math.sin(_animClock * 22.0 + npcPhaseIdx * 2);
+      canvas.drawCircle(
+        Offset(lx, ly),
+        4.8 * flick,
+        Paint()..color = const Color(0x55FFB703),
+      );
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset(lx, ly),
+          width: 2.2 * flick,
+          height: 3.4 * flick,
+        ),
+        Paint()..color = const Color(0xFFFFD166),
+      );
+      canvas.drawCircle(
+        Offset(lx, ly + 0.4),
+        0.9,
+        Paint()..color = const Color(0xFFFFFFFF),
+      );
+    }
+
+    // Overhead Quest Status Badge (! = Available Quest, ★ = Ready to Turn In)
+    if (questBadgeState != null &&
+        !performing &&
+        _mudReactionTimer <= 0.0) {
+      final isReady = questBadgeState == 'ready';
+      final bob = math.sin(_animClock * 4.8 + npcPhaseIdx) * 1.4;
+      final badgeCenter = Offset(16.0 + totalX, -4.2 - totalLiftY + bob);
+      canvas.drawCircle(
+        badgeCenter,
+        5.2,
+        Paint()
+          ..color = isReady
+              ? const Color(0xEB2A9D8F)
+              : const Color(0xEBFFB703),
+      );
+      canvas.drawCircle(
+        badgeCenter,
+        5.2,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.0
+          ..color = const Color(0xFF1C110A),
+      );
+      renderCenteredWorldPill(
+        canvas: canvas,
+        center: badgeCenter,
+        text: isReady ? '★' : '!',
+        fontSize: 6.8,
+        textColor: isReady ? const Color(0xFFFFFFFF) : const Color(0xFF1C110A),
+        backgroundColor: const Color(0x00000000),
+        horizontalPadding: 1.0,
+        pillHeight: 10.0,
+        minPillWidth: 8.0,
+        maxPillWidth: 14.0,
+        borderRadius: 4.0,
       );
     }
   }

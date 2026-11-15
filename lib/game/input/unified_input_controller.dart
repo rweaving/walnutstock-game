@@ -19,7 +19,7 @@ class UnifiedInputController {
     _virtualDpad.setZero();
   }
 
-  /// Handles keyboard events; returns action trigger ('interact', 'dance', 'dance_style', 'sway', 'journal', 'mud_toss', 'mud_slide', or null).
+  /// Handles keyboard events; returns action trigger ('interact', 'use_gadget', 'dance', 'dance_style', 'sway', 'journal', 'mud_toss', 'mud_slide', or null).
   String? handleKeyEvent(KeyEvent event) {
     final key = event.logicalKey;
     if (event is KeyDownEvent) {
@@ -30,6 +30,9 @@ class UnifiedInputController {
             key == LogicalKeyboardKey.enter) {
           return 'interact';
         }
+        if (key == LogicalKeyboardKey.keyQ) {
+          return 'use_gadget';
+        }
         if (key == LogicalKeyboardKey.keyB ||
             key == LogicalKeyboardKey.keyG) {
           return 'dance';
@@ -37,8 +40,7 @@ class UnifiedInputController {
         if (key == LogicalKeyboardKey.keyN) {
           return 'dance_style';
         }
-        if (key == LogicalKeyboardKey.keyF ||
-            key == LogicalKeyboardKey.keyQ) {
+        if (key == LogicalKeyboardKey.keyF) {
           return 'mud_toss';
         }
         if (key == LogicalKeyboardKey.shiftLeft ||

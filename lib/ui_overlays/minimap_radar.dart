@@ -3,7 +3,10 @@ import 'package:flutter/foundation.dart' show setEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../data/models.dart';
+import '../state/journal_state.dart';
 import '../state/providers.dart';
+import '../state/world_flags.dart';
 
 class MinimapRadarWidget extends ConsumerWidget {
   const MinimapRadarWidget({
@@ -15,17 +18,59 @@ class MinimapRadarWidget extends ConsumerWidget {
   final double playerX;
   final double playerY;
 
+  static Offset? resolveQuestTarget(
+    FestivalDataBundle data,
+    JournalState journal,
+    WorldFlags flags,
+  ) {
+    final trackedId = journal.trackedQuestId;
+    if (trackedId == null) return null;
+    final q = data.questById(trackedId);
+    if (q == null) return null;
+
+    if (q.id == 'quest_penny_tapestry' && !flags.pennyTapestryQuestCompleted) {
+      if (flags.pennyTapestryQuestStarted) {
+        if (!flags.fabricSwatches.contains('swatch_gate_petal')) {
+          return const Offset(640, 1200);
+        }
+        if (!flags.fabricSwatches.contains('swatch_meadow_clover')) {
+          return const Offset(1120, 520);
+        }
+        if (!flags.fabricSwatches.contains('swatch_urbano_gold')) {
+          return const Offset(256, 1136);
+        }
+      }
+      return const Offset(944, 1136);
+    }
+    if (q.id == 'quest_roxie_string' &&
+        flags.roxieStringQuestStarted &&
+        !flags.roxieStringQuestCompleted &&
+        !flags.hasNickelString &&
+        !journal.hasItem('quest_nickel_string')) {
+      return const Offset(1360, 1208);
+    }
+    if (q.id == 'quest_fern_compass' &&
+        !flags.fernCompassQuestCompleted &&
+        (flags.hasBrassCompass || journal.hasItem('quest_brass_compass'))) {
+      return const Offset(1184, 272);
+    }
+    return Offset(q.targetX, q.targetY);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider);
     final clock = ref.watch(festivalClockProvider);
     final flags = ref.watch(worldFlagsProvider);
+    final journal = ref.watch(journalStateProvider);
     final data = ref.watch(festivalDataProvider);
 
     final activeStageIds = data.setlist
         .activeTracksAt(clock.day, clock.minuteOfDay)
         .map((t) => t.stageId)
         .toSet();
+
+    final questTarget = resolveQuestTarget(data, journal, flags);
 
     final isCompact = MediaQuery.sizeOf(context).shortestSide < 540;
     final mapW = settings.minimapExpanded
@@ -55,6 +100,7 @@ class MinimapRadarWidget extends ConsumerWidget {
             showPeaceMarkers: flags.bittershellMapCompleted,
             mossBloomed: flags.mossBridgesBloomed,
             showDay2BlueberryShare: clock.isDay2BlueberrySharingActive,
+            questTarget: questTarget,
           ),
         ),
       ),
@@ -71,6 +117,7 @@ class _RadarPainter extends CustomPainter {
     required this.showPeaceMarkers,
     required this.mossBloomed,
     required this.showDay2BlueberryShare,
+    required this.questTarget,
   });
 
   static const double worldW = 2048.0;
@@ -83,6 +130,7 @@ class _RadarPainter extends CustomPainter {
   final bool showPeaceMarkers;
   final bool mossBloomed;
   final bool showDay2BlueberryShare;
+  final Offset? questTarget;
 
   Offset _scale(double wx, double wy, Size size) => Offset(
         (wx / worldW).clamp(0.0, 1.0) * size.width,
@@ -157,6 +205,26 @@ class _RadarPainter extends CustomPainter {
       canvas.drawCircle(berryPt, 2.4, Paint()..color = const Color(0xFFE0AAFF));
     }
 
+    // Pinned Quest Objective Beacon (golden compass diamond + outer halo!)
+    if (questTarget != null) {
+      final qPt = _scale(questTarget!.dx, questTarget!.dy, size);
+      canvas.drawCircle(qPt, 6.2, Paint()..color = const Color(0x55FFD166));
+      final diamond = Path()
+        ..moveTo(qPt.dx, qPt.dy - 4.5)
+        ..lineTo(qPt.dx + 4.5, qPt.dy)
+        ..lineTo(qPt.dx, qPt.dy + 4.5)
+        ..lineTo(qPt.dx - 4.5, qPt.dy)
+        ..close();
+      canvas.drawPath(diamond, Paint()..color = const Color(0xFFFFD166));
+      canvas.drawPath(
+        diamond,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.9
+          ..color = const Color(0xFF1B120B),
+      );
+    }
+
     // Player walnut beacon
     final pPt = _scale(playerX, playerY, size);
     canvas.drawCircle(pPt, 3.8, Paint()..color = const Color(0xFFFF595E));
@@ -177,5 +245,6 @@ class _RadarPainter extends CustomPainter {
       old.showPeaceMarkers != showPeaceMarkers ||
       old.mossBloomed != mossBloomed ||
       old.showDay2BlueberryShare != showDay2BlueberryShare ||
+      old.questTarget != questTarget ||
       !setEquals(old.activeStageIds, activeStageIds);
 }

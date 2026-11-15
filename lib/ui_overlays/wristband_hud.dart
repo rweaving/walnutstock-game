@@ -24,9 +24,13 @@ class WristbandHud extends ConsumerWidget {
     final clock = ref.watch(festivalClockProvider);
     final profile = ref.watch(playerProfileProvider);
     final flags = ref.watch(worldFlagsProvider);
+    final journal = ref.watch(journalStateProvider);
     final overlay = ref.watch(uiOverlayProvider);
     final settings = ref.watch(settingsProvider);
     final data = ref.watch(festivalDataProvider);
+    final equippedSpec = journal.equippedGadgetId != null
+        ? data.itemById(journal.equippedGadgetId!)
+        : null;
 
     final activeTracks =
         data.setlist.activeTracksAt(clock.day, clock.minuteOfDay);
@@ -65,6 +69,30 @@ class WristbandHud extends ConsumerWidget {
         active: false,
         compactTouch: isCompactWidth,
         onTap: () => ref.read(journalStateProvider.notifier).openJournal(),
+      ),
+      _HudChipButton(
+        buttonKey: const ValueKey('quick_item_button'),
+        icon: equippedSpec != null
+            ? Icons.auto_fix_high_rounded
+            : Icons.backpack_outlined,
+        label: equippedSpec != null
+            ? (isCompactWidth
+                ? '${equippedSpec.icon} Use'
+                : '${equippedSpec.icon} ${equippedSpec.name} [Q]')
+            : 'Satchel · ${journal.peaceBeads}📿',
+        active: equippedSpec != null &&
+            ((equippedSpec.id == 'gadget_sparkler' && flags.sparklerLit) ||
+                (equippedSpec.id == 'gadget_picnic_blanket' &&
+                    flags.picnicBlanketDeployed)),
+        compactTouch: isCompactWidth,
+        onTap: () {
+          unawaited(game.audioService.unlockAndInitialize());
+          if (equippedSpec != null) {
+            game.useEquippedFestivalItem();
+          } else {
+            ref.read(journalStateProvider.notifier).openJournal(tabIndex: 4);
+          }
+        },
       ),
       _HudChipButton(
         buttonKey: const ValueKey('next_set_button'),
@@ -157,6 +185,25 @@ class WristbandHud extends ConsumerWidget {
           }
         },
       ),
+      if (flags.activeFoodBuffLabel != null &&
+          flags.activeBuffRemainingSec > 0)
+        Container(
+          key: const ValueKey('food_buff_hud_badge'),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: const Color(0xEE1A3A2A),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: const Color(0xFF80FFDB), width: 1.2),
+          ),
+          child: Text(
+            '🥙 ${flags.activeFoodBuffLabel} (${flags.activeBuffRemainingSec.ceil()}s)',
+            style: const TextStyle(
+              color: Color(0xFFE9F5DB),
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
       if (berrySetsLeft > 0)
         Container(
           key: const ValueKey('electric_blueberry_hud_badge'),
@@ -310,7 +357,7 @@ class WristbandHud extends ConsumerWidget {
                                   ),
                                 );
                                 final zoneLabel = Text(
-                                  '📍 ${profile.activeZoneName}',
+                                  '📍 ${profile.activeZoneName} · 📿 ${journal.peaceBeads}',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(

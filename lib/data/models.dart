@@ -296,6 +296,103 @@ class WardrobeItemSpec extends Equatable {
   List<Object?> get props => [id, name, description, unlockedByDefault];
 }
 
+class FestivalItemSpec extends Equatable {
+  const FestivalItemSpec({
+    required this.id,
+    required this.name,
+    required this.icon,
+    required this.category,
+    required this.description,
+    required this.effectSummary,
+    this.beadCost = 0,
+    this.vendorStallId,
+    this.reusable = false,
+  });
+
+  factory FestivalItemSpec.fromJson(Map<String, dynamic> json) {
+    return FestivalItemSpec(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      icon: json['icon'] as String? ?? '✨',
+      category: json['category'] as String? ?? 'quest',
+      description: json['description'] as String? ?? '',
+      effectSummary: json['effectSummary'] as String? ?? '',
+      beadCost: (json['beadCost'] as num?)?.toInt() ?? 0,
+      vendorStallId: json['vendorStallId'] as String?,
+      reusable: json['reusable'] as bool? ?? false,
+    );
+  }
+
+  final String id;
+  final String name;
+  final String icon;
+  final String category; // 'gadget' | 'consumable' | 'quest'
+  final String description;
+  final String effectSummary;
+  final int beadCost;
+  final String? vendorStallId;
+  final bool reusable;
+
+  bool get isGadget => category == 'gadget' || id == 'quest_reel_tape';
+  bool get isConsumable => category == 'consumable';
+
+  @override
+  List<Object?> get props => [
+        id,
+        name,
+        icon,
+        category,
+        beadCost,
+        vendorStallId,
+        reusable,
+      ];
+}
+
+class QuestSpec extends Equatable {
+  const QuestSpec({
+    required this.id,
+    required this.title,
+    required this.giverNpcId,
+    required this.zone,
+    required this.summary,
+    required this.rewardSummary,
+    required this.targetX,
+    required this.targetY,
+  });
+
+  factory QuestSpec.fromJson(Map<String, dynamic> json) {
+    return QuestSpec(
+      id: json['id'] as String,
+      title: json['title'] as String,
+      giverNpcId: json['giverNpcId'] as String,
+      zone: json['zone'] as String? ?? '',
+      summary: json['summary'] as String? ?? '',
+      rewardSummary: json['rewardSummary'] as String? ?? '',
+      targetX: (json['targetX'] as num?)?.toDouble() ?? 608.0,
+      targetY: (json['targetY'] as num?)?.toDouble() ?? 608.0,
+    );
+  }
+
+  final String id;
+  final String title;
+  final String giverNpcId;
+  final String zone;
+  final String summary;
+  final String rewardSummary;
+  final double targetX;
+  final double targetY;
+
+  @override
+  List<Object?> get props => [
+        id,
+        title,
+        giverNpcId,
+        zone,
+        targetX,
+        targetY,
+      ];
+}
+
 class VinylSpec extends Equatable {
   const VinylSpec({
     required this.id,
@@ -449,6 +546,8 @@ class FestivalDataBundle {
     required this.vinyls,
     required this.totems,
     required this.npcs,
+    this.items = const [],
+    this.quests = const [],
     this.lightshows = ConcertLightShowLibrary.empty,
   });
 
@@ -464,6 +563,12 @@ class FestivalDataBundle {
           .toList(growable: false),
       wardrobe: (npcsJson['wardrobe'] as List<dynamic>? ?? const [])
           .map((e) => WardrobeItemSpec.fromJson(e as Map<String, dynamic>))
+          .toList(growable: false),
+      items: (npcsJson['items'] as List<dynamic>? ?? const [])
+          .map((e) => FestivalItemSpec.fromJson(e as Map<String, dynamic>))
+          .toList(growable: false),
+      quests: (npcsJson['quests'] as List<dynamic>? ?? const [])
+          .map((e) => QuestSpec.fromJson(e as Map<String, dynamic>))
           .toList(growable: false),
       vinyls: (npcsJson['vinyls'] as List<dynamic>? ?? const [])
           .map((e) => VinylSpec.fromJson(e as Map<String, dynamic>))
@@ -505,6 +610,8 @@ class FestivalDataBundle {
   final SetlistCatalog setlist;
   final List<CultivarSpec> cultivars;
   final List<WardrobeItemSpec> wardrobe;
+  final List<FestivalItemSpec> items;
+  final List<QuestSpec> quests;
   final List<VinylSpec> vinyls;
   final List<TotemSpec> totems;
   final List<NpcSpec> npcs;
@@ -513,6 +620,20 @@ class FestivalDataBundle {
   NpcSpec? npcById(String id) {
     for (final n in npcs) {
       if (n.id == id) return n;
+    }
+    return null;
+  }
+
+  FestivalItemSpec? itemById(String id) {
+    for (final item in items) {
+      if (item.id == id) return item;
+    }
+    return null;
+  }
+
+  QuestSpec? questById(String id) {
+    for (final q in quests) {
+      if (q.id == id) return q;
     }
     return null;
   }

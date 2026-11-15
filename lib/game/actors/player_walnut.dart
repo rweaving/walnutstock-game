@@ -46,6 +46,11 @@ class PlayerWalnut extends PositionComponent {
   double mudSplatter = 0.0;
   bool lowGravityEnhanced = false;
   String equippedWardrobeId = 'tie_dye_tee';
+  double speedMultiplier = 1.0;
+  bool mudGripActive = false;
+  bool fireflyAuraActive = false;
+  String? equippedGadgetId;
+  bool sparklerLit = false;
 
   double _lastDanceBounceY = 0.0;
   int _lastRenderedFrameCol = 0;
@@ -164,7 +169,9 @@ class PlayerWalnut extends PositionComponent {
 
     final onSlipperyMud = map.isSlipperyAtWorld(position.x, position.y);
     final inLowGravity = map.isLowGravityAtWorld(position.x, position.y);
-    final baseSpeed = inLowGravity ? 84.0 : (onSlipperyMud ? 122.0 : 94.0);
+    final rawBaseSpeed =
+        inLowGravity ? 84.0 : ((onSlipperyMud && !mudGripActive) ? 122.0 : 98.0);
+    final baseSpeed = rawBaseSpeed * speedMultiplier.clamp(0.75, 1.55);
 
     if (_bellySlideTimer > 0.0) {
       _bellySlideTimer = math.max(0.0, _bellySlideTimer - dt);
@@ -174,7 +181,7 @@ class PlayerWalnut extends PositionComponent {
       }
       final drag = math.pow(onSlipperyMud ? 0.44 : 0.18, dt).toDouble();
       _velocity.scale(drag);
-    } else if (onSlipperyMud) {
+    } else if (onSlipperyMud && !mudGripActive) {
       // Woodstock mud-pit momentum drift: snappy push-off + buttery low-friction coasting!
       final targetVel = desiredDir * baseSpeed;
       final accelRate = desiredDir.length2 > 0.01 ? 3.5 : 1.55;
@@ -563,6 +570,104 @@ class PlayerWalnut extends PositionComponent {
       }
     }
     canvas.restore();
+
+    // Flowing ROYGBIV Tie-Dye Ribbon Streamers when equipped!
+    if (equippedGadgetId == 'gadget_streamers') {
+      const ribbonCols = [
+        Color(0xDDFF595E),
+        Color(0xDDFFCA3A),
+        Color(0xDD8AC926),
+        Color(0xDD4CC9F0),
+        Color(0xDD9D4EDD),
+      ];
+      final trailDirX = moving ? -_velocity.normalized().x : -facingUnitVector.x;
+      final trailDirY = moving ? -_velocity.normalized().y : 0.25;
+      for (var r = 0; r < 2; r++) {
+        final anchorX = 16.0 + swayX + (r == 0 ? -7.5 : 7.5);
+        final anchorY = 17.0 - floatBob;
+        for (var seg = 0; seg < 5; seg++) {
+          final t = (seg + 1) / 5.0;
+          final flutter =
+              math.sin(_animClock * 11.0 - seg * 0.9 + r * 1.8) * (2.6 * t);
+          final rx = anchorX + trailDirX * (9.0 * t) + flutter;
+          final ry = anchorY + trailDirY * (6.5 * t) + t * 2.2;
+          canvas.drawCircle(
+            Offset(rx, ry),
+            1.45 - t * 0.35,
+            Paint()..color = ribbonCols[(seg + r * 2) % ribbonCols.length],
+          );
+        }
+      }
+    }
+
+    // Handheld Encore Sparkler / Concert Lighter raised overhead!
+    if (sparklerLit) {
+      final sx = 24.5 + swayX;
+      final sy = 8.5 - floatBob;
+      canvas.drawLine(
+        Offset(22.5 + swayX, 15.5 - floatBob),
+        Offset(sx, sy),
+        Paint()
+          ..color = const Color(0xFFD4A373)
+          ..strokeWidth = 1.3,
+      );
+      final flicker = 0.85 + 0.25 * math.sin(_animClock * 26.0);
+      canvas.drawCircle(
+        Offset(sx, sy),
+        6.5 * flicker,
+        Paint()
+          ..color = const Color(0x66FFBE0B)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+      );
+      canvas.drawCircle(
+        Offset(sx, sy),
+        2.3 * flicker,
+        Paint()..color = const Color(0xFFFFF3B0),
+      );
+      canvas.drawCircle(
+        Offset(sx, sy),
+        1.1,
+        Paint()..color = const Color(0xFFFFFFFF),
+      );
+    } else if (equippedGadgetId == 'gadget_bubble_wand') {
+      final wx = 24.5 + swayX;
+      final wy = 15.0 - floatBob;
+      canvas.drawLine(
+        Offset(22.5 + swayX, 18.0 - floatBob),
+        Offset(wx, wy + 1.5),
+        Paint()
+          ..color = const Color(0xFFE07A5F)
+          ..strokeWidth = 1.2,
+      );
+      canvas.drawCircle(
+        Offset(wx, wy),
+        2.0,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.0
+          ..color = const Color(0xFF80FFDB),
+      );
+    }
+
+    // Orbiting Chamomile Firefly Tea aura!
+    if (fireflyAuraActive) {
+      for (var f = 0; f < 4; f++) {
+        final ang = _animClock * 2.4 + f * (math.pi * 0.5);
+        final fx = 16.0 + swayX + math.cos(ang) * 14.5;
+        final fy = 15.5 - floatBob + math.sin(ang * 1.3) * 6.5;
+        final pulse = 0.55 + 0.45 * math.sin(_animClock * 7.0 + f * 1.7);
+        canvas.drawCircle(
+          Offset(fx, fy),
+          3.2,
+          Paint()..color = Color.fromRGBO(128, 255, 219, 0.28 * pulse),
+        );
+        canvas.drawCircle(
+          Offset(fx, fy),
+          1.35,
+          Paint()..color = Color.fromRGBO(255, 243, 176, 0.92 * pulse),
+        );
+      }
+    }
 
     // Floating beat-synced music notes rising from the dancing player!
     if (isDancing && !isBellySliding) {

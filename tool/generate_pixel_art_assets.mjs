@@ -1099,6 +1099,7 @@ function buildFullOrchardTmx() {
     setD(x, 74, 8);
   }
   setD(33, 76, 47);
+  setD(43, 76, 47);
   setD(42, 76, 17);
   setD(33, 82, 17);
 
@@ -1192,6 +1193,9 @@ function buildFullOrchardTmx() {
   setG(65, 61, 41);
   setD(67, 60, 20);
   setD(69, 60, 39);
+  setD(71, 60, 18);
+  setD(72, 60, 38);
+  fillRect(setG, 55, 70, 2, 2, 15);
   fillRect(setD, 60, 74, 3, 2, 13);
   setD(61, 76, 14);
   fillRect(setD, 68, 74, 3, 2, 13);
@@ -1269,6 +1273,11 @@ function buildFullOrchardTmx() {
     `<object id="44" name="artifact_booth" type="interactable" x="1264" y="1184" width="64" height="32"/>`,
     `<object id="45" name="terminal_velvet_ledge" type="interactable" x="144" y="112" width="32" height="32"/>`,
     `<object id="46" name="terminal_arcade" type="interactable" x="1808" y="976" width="32" height="32"/>`,
+    `<object id="47" name="penny_craft_blanket" type="interactable" x="880" y="1120" width="32" height="32"/>`,
+    `<object id="48" name="colin_curio_crate" type="interactable" x="1344" y="1192" width="32" height="32"/>`,
+    `<object id="49" name="street_food_cart" type="interactable" x="1136" y="968" width="32" height="32"/>`,
+    `<object id="50" name="bulletin_lost_found" type="interactable" x="680" y="1224" width="32" height="32"/>`,
+    `<object id="51" name="lost_brass_compass" type="interactable" x="484" y="612" width="24" height="24"/>`,
   ].join('\n  ');
 
   const tmx = `<?xml version="1.0" encoding="UTF-8"?>
@@ -2415,6 +2424,80 @@ function buildTotemsAndProps() {
   vinyl.fillLitEllipsoid(16, 16, 5, 5, hex('#e76f51'), { specStrength: 0.35 });
   vinyl.setPixel(16, 16, hex('#ffffff'));
   vinyl.save(path.join(ROOT, 'assets/images/props/vinyl_disc.png'));
+
+  // 3D 6-Panel Specular Festival Beach Ball
+  const ball = new PixelCanvas(24, 24);
+  const panelColors = [
+    hex('#ff595e'),
+    hex('#ffca3a'),
+    hex('#f8f9fa'),
+    hex('#1982c4'),
+    hex('#8ac926'),
+    hex('#9d4edd'),
+  ];
+  for (let y = 2; y < 22; y++) {
+    for (let x = 2; x < 22; x++) {
+      const dx = (x - 11.5) / 9.5;
+      const dy = (y - 11.5) / 9.5;
+      const r2 = dx * dx + dy * dy;
+      if (r2 > 1.0) continue;
+      const nz = Math.sqrt(Math.max(0.05, 1.0 - r2));
+      const ang = Math.atan2(dy, dx);
+      const panelIdx = ((Math.floor(((ang + Math.PI) / (Math.PI * 2)) * 6) % 6) + 6) % 6;
+      const base = panelColors[panelIdx];
+      const ndotl = Math.max(0, -0.45 * dx - 0.55 * dy + 0.70 * nz);
+      const spec = Math.pow(Math.max(0, -0.35 * dx - 0.45 * dy + 0.82 * nz), 18) * 0.55;
+      const lit = shade(base, 0.52 + 0.62 * ndotl);
+      ball.setPixel(x, y, mixCol(lit, hex('#ffffff'), Math.min(1, spec)));
+      if (r2 > 0.82) {
+        ball.setPixel(x, y, hex('#1c1424'));
+      }
+    }
+  }
+  ball.fillLitEllipsoid(11.5, 6.5, 2.5, 1.6, hex('#ffffff'), { outline: hex('#1c1424') });
+  ball.save(path.join(ROOT, 'assets/images/props/beach_ball.png'));
+
+  // 3D Brass Pocket Festival Compass with Specular Glint
+  const compass = new PixelCanvas(16, 16);
+  compass.fillEllipse(8, 13, 5.5, 2.0, hex('#000000', 95));
+  compass.fillLitEllipsoid(8, 8.5, 5.6, 5.2, hex('#e9b44c'), {
+    specStrength: 0.65,
+    outline: hex('#5c3a12'),
+  });
+  compass.fillEllipse(8, 8.5, 3.6, 3.2, hex('#fff8e8'));
+  compass.fillRect(8, 6, 1, 3, hex('#e63946'));
+  compass.fillRect(7, 9, 1, 2, hex('#1d3557'));
+  compass.setPixel(6, 5, hex('#ffffff'));
+  compass.setPixel(12, 3, hex('#fff3b0'));
+  compass.save(path.join(ROOT, 'assets/images/props/compass_glint.png'));
+
+  // 3D Woven Patchwork Picnic Blanket (48x36)
+  const blanket = new PixelCanvas(48, 36);
+  blanket.fillRect(2, 33, 44, 2, hex('#000000', 95));
+  const quiltPalette = [
+    '#e63946', '#f4a261', '#e9c46a', '#2a9d8f', '#457b9d', '#9d4edd',
+  ];
+  for (let qy = 0; qy < 3; qy++) {
+    for (let qx = 0; qx < 4; qx++) {
+      const col = hex(quiltPalette[(qx + qy * 2) % quiltPalette.length]);
+      for (let dy = 0; dy < 10; dy++) {
+        for (let dx = 0; dx < 10; dx++) {
+          const weave = (dx + dy) % 2 === 0 ? 1.06 : 0.94;
+          const seam = dx === 0 || dy === 0 ? 0.78 : 1.0;
+          blanket.setPixel(4 + qx * 10 + dx, 3 + qy * 10 + dy, shade(col, weave * seam));
+        }
+      }
+    }
+  }
+  for (let fx = 4; fx < 44; fx += 2) {
+    blanket.fillRect(fx, 1, 1, 2, hex('#fff3d6'));
+    blanket.fillRect(fx, 33, 1, 2, hex('#e6d3a7'));
+  }
+  for (let fy = 4; fy < 32; fy += 2) {
+    blanket.fillRect(2, fy, 2, 1, hex('#fff3d6'));
+    blanket.fillRect(44, fy, 2, 1, hex('#e6d3a7'));
+  }
+  blanket.save(path.join(ROOT, 'assets/images/props/picnic_blanket.png'));
 }
 
 buildTilesetAndTsx();

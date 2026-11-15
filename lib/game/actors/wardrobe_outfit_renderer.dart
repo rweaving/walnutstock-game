@@ -405,6 +405,140 @@ void renderWalnutWardrobeOutfit(
       );
       break;
 
+    case 'press_photographer_vest':
+      // Khaki 1969 press vest + pockets + silver camera strap + white PRESS card
+      final khaki = Paint()..color = const Color(0xFFC8B07A);
+      final khakiPocket = Paint()..color = const Color(0xFF998252);
+      canvas.drawRect(Rect.fromLTWH(9.8 + ox, 18.8 + oy, 4.8, 6.2), khaki);
+      canvas.drawRect(Rect.fromLTWH(17.4 + ox, 18.8 + oy, 4.8, 6.2), khaki);
+      canvas.drawRect(
+          Rect.fromLTWH(10.3 + ox, 21.6 + oy, 3.4, 2.4), khakiPocket);
+      canvas.drawRect(
+          Rect.fromLTWH(18.3 + ox, 21.6 + oy, 3.4, 2.4), khakiPocket);
+      // Diagonal silver camera strap & black rangefinder body
+      if (facingRow != 3) {
+        canvas.drawLine(
+          Offset(11.0 + ox, 18.8 + oy),
+          Offset(17.5 + ox, 24.0 + oy),
+          Paint()
+            ..color = const Color(0xFFE2E8F0)
+            ..strokeWidth = 1.1,
+        );
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromLTWH(14.0 + ox, 21.4 + oy, 4.2, 3.0),
+            const Radius.circular(0.8),
+          ),
+          Paint()..color = const Color(0xFF1F242D),
+        );
+        canvas.drawCircle(
+          Offset(16.1 + ox, 22.9 + oy),
+          1.0,
+          Paint()..color = const Color(0xFF90E0EF),
+        );
+      }
+      // Press hat band & white PRESS ticket
+      canvas.drawRect(
+        Rect.fromLTWH(8.0 + ox, 5.6 + oy, 16.0, 1.8),
+        Paint()..color = const Color(0xFF5C4728),
+      );
+      canvas.drawRect(
+        Rect.fromLTWH(18.8 + ox, 4.2 + oy, 3.4, 2.4),
+        Paint()..color = const Color(0xFFFFF8EB),
+      );
+      break;
+
+    case 'artisan_patchwork_cape':
+      // Hand-loomed 3-grove festival quilt cape (rose, emerald clover, Santurce gold)
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(8.8 + ox, 18.4 + oy, 4.8, 6.4),
+          const Radius.circular(1.4),
+        ),
+        Paint()..color = const Color(0xFFFF70A6),
+      );
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(13.6 + ox, 18.4 + oy, 4.8, 6.4),
+          const Radius.circular(1.0),
+        ),
+        Paint()..color = const Color(0xFF52B788),
+      );
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(18.4 + ox, 18.4 + oy, 4.8, 6.4),
+          const Radius.circular(1.4),
+        ),
+        Paint()..color = const Color(0xFFFFBE0B),
+      );
+      for (var fx = 9.4; fx <= 22.4; fx += 2.2) {
+        canvas.drawRect(
+          Rect.fromLTWH(fx + ox, 24.6 + oy, 1.1, 1.4),
+          Paint()..color = const Color(0xFFFFF3D6),
+        );
+      }
+      break;
+
+    case 'campfire_ranger_hat':
+      // Pine-green Appalachian trail ranger hat + warm crimson campfire kerchief
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset(16.0 + ox, 6.0 + oy),
+          width: 21.0,
+          height: 4.4,
+        ),
+        Paint()..color = const Color(0xFF1B4332),
+      );
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(10.2 + ox, 2.2 + oy, 11.6, 4.2),
+          const Radius.circular(2.0),
+        ),
+        Paint()..color = const Color(0xFF2D6A4F),
+      );
+      canvas.drawRect(
+        Rect.fromLTWH(10.4 + ox, 5.0 + oy, 11.2, 1.1),
+        Paint()..color = const Color(0xFFE76F51),
+      );
+      // Crimson campfire neck kerchief
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(10.4 + ox, 18.4 + oy, 11.2, 2.8),
+          const Radius.circular(1.2),
+        ),
+        Paint()..color = const Color(0xFFD62828),
+      );
+      break;
+
+    case 'pinball_wizard_jacket':
+      // Electric magenta-and-gold quilted arcade satin bomber + lightning star
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(9.4 + ox, 18.6 + oy, 13.2, 6.4),
+          const Radius.circular(1.8),
+        ),
+        Paint()..color = const Color(0xFFF72585),
+      );
+      canvas.drawRect(
+        Rect.fromLTWH(9.4 + ox, 18.8 + oy, 2.6, 5.8),
+        Paint()..color = const Color(0xFFFFBE0B),
+      );
+      canvas.drawRect(
+        Rect.fromLTWH(20.0 + ox, 18.8 + oy, 2.6, 5.8),
+        Paint()..color = const Color(0xFFFFBE0B),
+      );
+      canvas.drawCircle(
+        Offset(16.0 + ox, 21.6 + oy),
+        1.8,
+        Paint()..color = const Color(0xFF4CC9F0),
+      );
+      canvas.drawCircle(
+        Offset(16.0 + ox, 21.6 + oy),
+        0.9,
+        Paint()..color = const Color(0xFFFFFFFF),
+      );
+      break;
+
     default:
       break;
   }

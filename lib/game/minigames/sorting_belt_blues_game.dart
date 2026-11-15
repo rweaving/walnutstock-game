@@ -538,6 +538,13 @@ class _SortingBeltBluesOverlayState
 
   void _closeModal() {
     ref.read(worldFlagsProvider.notifier).recordSortingBeltScore(_sim.score);
+    if (_sim.score > 0) {
+      final beads = (_sim.score ~/ 30).clamp(1, 8);
+      ref.read(journalStateProvider.notifier).addPeaceBeads(beads);
+      ref.read(uiOverlayProvider.notifier).showToast(
+            '🌰 Kernel Sorter Score ${_sim.score}! Earned +$beads Peace Beads!',
+          );
+    }
     ref.read(uiOverlayProvider.notifier).closeModal();
   }
 

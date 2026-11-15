@@ -456,7 +456,9 @@ void main() {
         () {
       expect(data.cultivars.length, 11);
       expect(data.npcs.length, 34);
-      expect(data.wardrobe.length, 16);
+      expect(data.wardrobe.length, 20);
+      expect(data.items.length, 18);
+      expect(data.quests.length, 18);
 
       final starterOutfits =
           data.wardrobe.where((w) => w.unlockedByDefault).toList();
@@ -863,6 +865,140 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('90%'), findsOneWidget);
       expect(tester.takeException(), isNull);
+    });
+
+    testWidgets(
+        'Festival Satchel, Quests Tab, Vendor Stall Modals, and Wristband Quick-Item Chip render & interact cleanly across 1280x720, 960x640, and 390x844 viewports',
+        (tester) async {
+      tester.view.devicePixelRatio = 1.0;
+      tester.view.physicalSize = const Size(1280, 720);
+      await tester.binding.setSurfaceSize(const Size(1280, 720));
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+        return tester.binding.setSurfaceSize(null);
+      });
+
+      final container = ProviderContainer(
+        overrides: [
+          festivalDataProvider.overrideWithValue(data),
+          saveRepositoryProvider.overrideWithValue(SaveRepository()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      container.read(playerProfileProvider.notifier).confirmCultivarAndEnter();
+      container.read(journalStateProvider.notifier).addPeaceBeads(25);
+      container.read(journalStateProvider.notifier).grantItem(
+            'gadget_bubble_wand',
+            autoEquipGadget: true,
+            displayLabel: 'Soap Bubble Wand',
+          );
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: WalnutstockApp(
+            data: data,
+            mapData: mapData,
+            audioService: SoloudAudioService(),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // 1. Wristband Quick-Item chip triggers equipped Soap Bubble Wand cleanly
+      final quickChip = find.byKey(const ValueKey('quick_item_button'));
+      expect(quickChip, findsOneWidget);
+      await tester.tap(quickChip);
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+
+      // 2. Open Vibe Journal -> Satchel tab & Quests tab + Radar quest tracking
+      container.read(journalStateProvider.notifier).openJournal();
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('journal_tab_satchel')));
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey('satchel_equip_gadget_bubble_wand')),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('journal_tab_quests')));
+      await tester.pump();
+      final trackSunny =
+          find.byKey(const ValueKey('track_quest_quest_sunny_polaroids'));
+      expect(trackSunny, findsOneWidget);
+      await tester.tap(trackSunny);
+      await tester.pump();
+      expect(
+        container.read(journalStateProvider).trackedQuestId,
+        'quest_sunny_polaroids',
+      );
+
+      // Verify Satchel & Quests tabs have zero layout overflow across all target viewports
+      for (final sz in const [
+        Size(1280, 720),
+        Size(960, 640),
+        Size(390, 844),
+      ]) {
+        tester.view.physicalSize = sz;
+        await tester.binding.setSurfaceSize(sz);
+        await tester.pump();
+        expect(tester.takeException(), isNull, reason: 'Journal at $sz');
+      }
+      container.read(journalStateProvider.notifier).closeJournal();
+      await tester.pump();
+
+      // 3. Open Burt's Street Food Stall -> Buy Warm Tahini Falafel -> Enjoy Now -> verify across all 4 stalls & viewports
+      tester.view.physicalSize = const Size(1280, 720);
+      await tester.binding.setSurfaceSize(const Size(1280, 720));
+      await tester.pump();
+
+      container.read(uiOverlayProvider.notifier).openVendorStall('burt_food');
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey('festival_stall_modal_burt_food')),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('stall_buy_food_falafel_wrap')));
+      await tester.pump();
+      expect(
+        container.read(journalStateProvider).hasItem('food_falafel_wrap'),
+        isTrue,
+      );
+      await tester.tap(find.byKey(const ValueKey('stall_use_food_falafel_wrap')));
+      await tester.pump();
+      expect(
+        container.read(worldFlagsProvider).activeSpeedMultiplier,
+        greaterThan(1.1),
+      );
+
+      for (final stallId in const [
+        'burt_food',
+        'penny_crafts',
+        'colin_curios',
+        'bulletin_board',
+      ]) {
+        container.read(uiOverlayProvider.notifier).openVendorStall(stallId);
+        for (final sz in const [
+          Size(1280, 720),
+          Size(960, 640),
+          Size(390, 844),
+        ]) {
+          tester.view.physicalSize = sz;
+          await tester.binding.setSurfaceSize(sz);
+          await tester.pump();
+          expect(
+            tester.takeException(),
+            isNull,
+            reason: 'Stall $stallId should not overflow at $sz',
+          );
+        }
+      }
+      container.read(uiOverlayProvider.notifier).closeModal();
+      await tester.pump();
     });
   });
 }

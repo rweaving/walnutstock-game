@@ -16,6 +16,7 @@ import '../state/dialogue_and_overlay_state.dart';
 import '../state/providers.dart';
 import '../ui_overlays/dialogue_box.dart';
 import '../ui_overlays/encore_control_deck.dart';
+import '../ui_overlays/festival_stall_modal.dart';
 import '../ui_overlays/finale_montage_overlay.dart';
 import '../ui_overlays/settings_drawer.dart';
 import '../ui_overlays/vibe_journal.dart';
@@ -137,13 +138,20 @@ class _WalnutstockAppState extends ConsumerState<WalnutstockApp> {
               SortingBeltBluesOverlay(audio: widget.audioService),
             if (overlay.modal == ActiveModalOverlay.artifactBooth)
               const ArtifactBoothModal(),
+            if (overlay.modal == ActiveModalOverlay.vendorStall)
+              FestivalStallModal(
+                onUseItem: game.useEquippedFestivalItem,
+              ),
             if (overlay.modal == ActiveModalOverlay.encoreDeck)
               EncoreControlDeck(game: game),
             if (overlay.modal == ActiveModalOverlay.finaleMontage)
               const FinaleMontageOverlay(),
             if (overlay.modal == ActiveModalOverlay.settingsDrawer)
               const SettingsAccessibilityDrawer(),
-            if (journalOpen) const VibeJournalModal(),
+            if (journalOpen)
+              VibeJournalModal(
+                onUseItem: game.useEquippedFestivalItem,
+              ),
           ],
         ),
       ),

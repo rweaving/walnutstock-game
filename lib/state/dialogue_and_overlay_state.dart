@@ -8,6 +8,7 @@ enum ActiveModalOverlay {
   pinball,
   sortingBelt,
   artifactBooth,
+  vendorStall,
   finaleMontage,
   encoreDeck,
   settingsDrawer,
@@ -62,6 +63,7 @@ class UiOverlayState extends Equatable {
     this.toastBanner,
     this.nearbyInteractPrompt,
     this.turntableTrackNumber,
+    this.activeVendorStallId,
   });
 
   final DialogueSession? dialogue;
@@ -69,6 +71,7 @@ class UiOverlayState extends Equatable {
   final String? toastBanner;
   final String? nearbyInteractPrompt;
   final int? turntableTrackNumber;
+  final String? activeVendorStallId;
 
   bool get isBlockingInput =>
       dialogue != null ||
@@ -85,6 +88,8 @@ class UiOverlayState extends Equatable {
     bool clearPrompt = false,
     int? turntableTrackNumber,
     bool clearTurntableTrack = false,
+    String? activeVendorStallId,
+    bool clearVendorStall = false,
   }) {
     return UiOverlayState(
       dialogue: clearDialogue ? null : (dialogue ?? this.dialogue),
@@ -96,6 +101,9 @@ class UiOverlayState extends Equatable {
       turntableTrackNumber: clearTurntableTrack
           ? null
           : (turntableTrackNumber ?? this.turntableTrackNumber),
+      activeVendorStallId: clearVendorStall
+          ? null
+          : (activeVendorStallId ?? this.activeVendorStallId),
     );
   }
 
@@ -106,6 +114,7 @@ class UiOverlayState extends Equatable {
         toastBanner,
         nearbyInteractPrompt,
         turntableTrackNumber,
+        activeVendorStallId,
       ];
 }
 
@@ -133,8 +142,18 @@ class UiOverlayNotifier extends StateNotifier<UiOverlayState> {
     state = state.copyWith(modal: modal);
   }
 
+  void openVendorStall(String stallId) {
+    state = state.copyWith(
+      modal: ActiveModalOverlay.vendorStall,
+      activeVendorStallId: stallId,
+    );
+  }
+
   void closeModal() {
-    state = state.copyWith(modal: ActiveModalOverlay.none);
+    state = state.copyWith(
+      modal: ActiveModalOverlay.none,
+      clearVendorStall: true,
+    );
   }
 
   void showToast(String message) {

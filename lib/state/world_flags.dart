@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/models.dart';
+import 'journal_state.dart';
 
 class WorldFlags extends Equatable {
   const WorldFlags({
@@ -57,11 +58,45 @@ class WorldFlags extends Equatable {
     this.blueberryExpiryDay = 0,
     this.blueberryExpiryMinute = 0.0,
     this.blueberriesSharedCount = 0,
+    // Festival Life Expansion: 8 new side quests, Vendor Row, & crowd micro-events
+    this.sunnyPhotoQuestStarted = false,
+    this.sunnyPhotoQuestCompleted = false,
+    this.roxieStringQuestStarted = false,
+    this.hasNickelString = false,
+    this.roxieStringQuestCompleted = false,
+    this.pennyTapestryQuestStarted = false,
+    this.fabricSwatches = const {},
+    this.pennyTapestryQuestCompleted = false,
+    this.mateoTapeQuestStarted = false,
+    this.mateoTapeQuestCompleted = false,
+    this.fernCompassQuestStarted = false,
+    this.hasBrassCompass = false,
+    this.fernCompassQuestCompleted = false,
+    this.astraBubbleQuestStarted = false,
+    this.bubbledInDome = false,
+    this.astraBubbleQuestCompleted = false,
+    this.woodyMunchiesQuestStarted = false,
+    this.woodyMunchiesQuestCompleted = false,
+    this.rustyArcadeQuestStarted = false,
+    this.rustyArcadeQuestCompleted = false,
+    this.daisyFreeBubblesGifted = false,
+    this.beachBallMaxRally = 0,
+    this.collectedGroundBeadIds = const {},
+    // Transient runtime aura, buffs, & handheld festival gadgets
     this.playerSwaying = false,
     this.playerDancing = false,
     this.playerDanceStyle = 0,
     this.crowdAura = 0.0,
     this.justListenStageMode = false,
+    this.speedBuffSec = 0.0,
+    this.speedBuffBonus = 0.0,
+    this.activeFoodBuffLabel,
+    this.mudGripSec = 0.0,
+    this.fireflyAuraSec = 0.0,
+    this.sparklerLit = false,
+    this.picnicBlanketDeployed = false,
+    this.picnicBlanketX = 0.0,
+    this.picnicBlanketY = 0.0,
   });
 
   static const List<String> danceStyleNames = [
@@ -139,6 +174,45 @@ class WorldFlags extends Equatable {
           (json['blueberryExpiryMinute'] as num?)?.toDouble() ?? 0.0,
       blueberriesSharedCount:
           (json['blueberriesSharedCount'] as num?)?.toInt() ?? 0,
+      sunnyPhotoQuestStarted:
+          json['sunnyPhotoQuestStarted'] as bool? ?? false,
+      sunnyPhotoQuestCompleted:
+          json['sunnyPhotoQuestCompleted'] as bool? ?? false,
+      roxieStringQuestStarted:
+          json['roxieStringQuestStarted'] as bool? ?? false,
+      hasNickelString: json['hasNickelString'] as bool? ?? false,
+      roxieStringQuestCompleted:
+          json['roxieStringQuestCompleted'] as bool? ?? false,
+      pennyTapestryQuestStarted:
+          json['pennyTapestryQuestStarted'] as bool? ?? false,
+      fabricSwatches: strSet('fabricSwatches'),
+      pennyTapestryQuestCompleted:
+          json['pennyTapestryQuestCompleted'] as bool? ?? false,
+      mateoTapeQuestStarted: json['mateoTapeQuestStarted'] as bool? ?? false,
+      mateoTapeQuestCompleted:
+          json['mateoTapeQuestCompleted'] as bool? ?? false,
+      fernCompassQuestStarted:
+          json['fernCompassQuestStarted'] as bool? ?? false,
+      hasBrassCompass: json['hasBrassCompass'] as bool? ?? false,
+      fernCompassQuestCompleted:
+          json['fernCompassQuestCompleted'] as bool? ?? false,
+      astraBubbleQuestStarted:
+          json['astraBubbleQuestStarted'] as bool? ?? false,
+      bubbledInDome: json['bubbledInDome'] as bool? ?? false,
+      astraBubbleQuestCompleted:
+          json['astraBubbleQuestCompleted'] as bool? ?? false,
+      woodyMunchiesQuestStarted:
+          json['woodyMunchiesQuestStarted'] as bool? ?? false,
+      woodyMunchiesQuestCompleted:
+          json['woodyMunchiesQuestCompleted'] as bool? ?? false,
+      rustyArcadeQuestStarted:
+          json['rustyArcadeQuestStarted'] as bool? ?? false,
+      rustyArcadeQuestCompleted:
+          json['rustyArcadeQuestCompleted'] as bool? ?? false,
+      daisyFreeBubblesGifted:
+          json['daisyFreeBubblesGifted'] as bool? ?? false,
+      beachBallMaxRally: (json['beachBallMaxRally'] as num?)?.toInt() ?? 0,
+      collectedGroundBeadIds: strSet('collectedGroundBeadIds'),
     );
   }
 
@@ -195,15 +269,193 @@ class WorldFlags extends Equatable {
   final double blueberryExpiryMinute;
   final int blueberriesSharedCount;
 
-  // Transient runtime aura & music-synced dance state
+  // Festival Life Expansion persisted flags
+  final bool sunnyPhotoQuestStarted;
+  final bool sunnyPhotoQuestCompleted;
+  final bool roxieStringQuestStarted;
+  final bool hasNickelString;
+  final bool roxieStringQuestCompleted;
+  final bool pennyTapestryQuestStarted;
+  final Set<String> fabricSwatches;
+  final bool pennyTapestryQuestCompleted;
+  final bool mateoTapeQuestStarted;
+  final bool mateoTapeQuestCompleted;
+  final bool fernCompassQuestStarted;
+  final bool hasBrassCompass;
+  final bool fernCompassQuestCompleted;
+  final bool astraBubbleQuestStarted;
+  final bool bubbledInDome;
+  final bool astraBubbleQuestCompleted;
+  final bool woodyMunchiesQuestStarted;
+  final bool woodyMunchiesQuestCompleted;
+  final bool rustyArcadeQuestStarted;
+  final bool rustyArcadeQuestCompleted;
+  final bool daisyFreeBubblesGifted;
+  final int beachBallMaxRally;
+  final Set<String> collectedGroundBeadIds;
+
+  // Transient runtime aura, buffs & handheld gadgets
   final bool playerSwaying;
   final bool playerDancing;
   final int playerDanceStyle;
   final double crowdAura;
   final bool justListenStageMode;
+  final double speedBuffSec;
+  final double speedBuffBonus;
+  final String? activeFoodBuffLabel;
+  final double mudGripSec;
+  final double fireflyAuraSec;
+  final bool sparklerLit;
+  final bool picnicBlanketDeployed;
+  final double picnicBlanketX;
+  final double picnicBlanketY;
 
   String get currentDanceStyleLabel =>
       danceStyleNames[playerDanceStyle % danceStyleNames.length];
+
+  bool get mudGripActive => mudGripSec > 0.0;
+  bool get fireflyAuraActive => fireflyAuraSec > 0.0;
+  double get activeSpeedMultiplier =>
+      speedBuffSec > 0.0 ? (1.0 + speedBuffBonus) : 1.0;
+
+  double get activeBuffRemainingSec {
+    var best = speedBuffSec;
+    if (mudGripSec > best) best = mudGripSec;
+    if (fireflyAuraSec > best) best = fireflyAuraSec;
+    return best;
+  }
+
+  int get completedQuestCount {
+    var count = 0;
+    for (final done in [
+      ziggyQuestCompleted,
+      breezewalkerQuestCompleted,
+      burtQuestCompleted,
+      bittershellMapCompleted,
+      janiceQuestCompleted,
+      cosmoQuestCompleted,
+      donShelloQuestCompleted,
+      tulaQuestCompleted,
+      jimiQuestCompleted,
+      peteInterviewCompleted,
+      sunnyPhotoQuestCompleted,
+      roxieStringQuestCompleted,
+      pennyTapestryQuestCompleted,
+      mateoTapeQuestCompleted,
+      fernCompassQuestCompleted,
+      astraBubbleQuestCompleted,
+      woodyMunchiesQuestCompleted,
+      rustyArcadeQuestCompleted,
+    ]) {
+      if (done) count++;
+    }
+    return count;
+  }
+
+  /// Returns `'completed' | 'ready' | 'in_progress' | 'available'` for any quest ID.
+  String questStatusFor(
+    String questId,
+    JournalState journal, {
+    int currentDay = 1,
+    bool encoreUnlocked = false,
+  }) {
+    switch (questId) {
+      case 'quest_sunny_polaroids':
+        if (sunnyPhotoQuestCompleted) return 'completed';
+        if (sunnyPhotoQuestStarted && journal.snappedPolaroidStages.length >= 3) {
+          return 'ready';
+        }
+        return sunnyPhotoQuestStarted ? 'in_progress' : 'available';
+      case 'quest_roxie_string':
+        if (roxieStringQuestCompleted) return 'completed';
+        if (roxieStringQuestStarted &&
+            (hasNickelString || journal.hasItem('quest_nickel_string'))) {
+          return 'ready';
+        }
+        return roxieStringQuestStarted ? 'in_progress' : 'available';
+      case 'quest_penny_tapestry':
+        if (pennyTapestryQuestCompleted) return 'completed';
+        if (pennyTapestryQuestStarted && fabricSwatches.length >= 3) {
+          return 'ready';
+        }
+        return pennyTapestryQuestStarted ? 'in_progress' : 'available';
+      case 'quest_mateo_bootleg':
+        if (mateoTapeQuestCompleted) return 'completed';
+        if (mateoTapeQuestStarted &&
+            journal.recordedBootlegStages.length >= 2) {
+          return 'ready';
+        }
+        return mateoTapeQuestStarted ? 'in_progress' : 'available';
+      case 'quest_fern_compass':
+        if (fernCompassQuestCompleted) return 'completed';
+        if (hasBrassCompass || journal.hasItem('quest_brass_compass')) {
+          return 'ready';
+        }
+        return fernCompassQuestStarted ? 'in_progress' : 'available';
+      case 'quest_astra_bubbles':
+        if (astraBubbleQuestCompleted) return 'completed';
+        if (bubbledInDome) return 'ready';
+        return astraBubbleQuestStarted ? 'in_progress' : 'available';
+      case 'quest_woody_munchies':
+        if (woodyMunchiesQuestCompleted) return 'completed';
+        if (woodyMunchiesQuestStarted &&
+            journal.hasItem('food_falafel_wrap') &&
+            journal.hasItem('drink_chamomile_tea')) {
+          return 'ready';
+        }
+        return woodyMunchiesQuestStarted ? 'in_progress' : 'available';
+      case 'quest_rusty_arcade':
+        if (rustyArcadeQuestCompleted) return 'completed';
+        if (rustyArcadeQuestStarted &&
+            pinballHighScore >= 1200 &&
+            sortingBeltHighScore >= 100) {
+          return 'ready';
+        }
+        return rustyArcadeQuestStarted ? 'in_progress' : 'available';
+      case 'quest_falafel_truce':
+        if (burtQuestCompleted) return 'completed';
+        if (burtQuestStarted && falafelCiderOffered) return 'ready';
+        return burtQuestStarted ? 'in_progress' : 'available';
+      case 'quest_janice_tea':
+        if (janiceQuestCompleted) return 'completed';
+        if (janiceQuestStarted && hasVocalTea) return 'ready';
+        return janiceQuestStarted ? 'in_progress' : 'available';
+      case 'quest_ziggy_dew':
+        if (ziggyQuestCompleted) return 'completed';
+        if (ziggyQuestStarted && dewDropsCollected.length >= 3) return 'ready';
+        return ziggyQuestStarted ? 'in_progress' : 'available';
+      case 'quest_willow_pick':
+        if (breezewalkerQuestCompleted) return 'completed';
+        if (breezewalkerQuestStarted && hasWillowPick) return 'ready';
+        return breezewalkerQuestStarted ? 'in_progress' : 'available';
+      case 'quest_cosmo_resonators':
+        if (cosmoQuestCompleted) return 'completed';
+        if (tunedResonators.length >= 3) return 'ready';
+        return cosmoQuestStarted ? 'in_progress' : 'available';
+      case 'quest_don_shello_mic':
+        if (donShelloQuestCompleted) return 'completed';
+        if (donShelloQuestStarted && goldMicBlessed && buriedStashUnearthed) {
+          return 'ready';
+        }
+        return donShelloQuestStarted ? 'in_progress' : 'available';
+      case 'quest_tula_fog_bells':
+        if (tulaQuestCompleted) return 'completed';
+        if (teaLightAltared) return 'ready';
+        return tulaQuestStarted ? 'in_progress' : 'available';
+      case 'quest_bittershell_map':
+        return bittershellMapCompleted ? 'completed' : 'available';
+      case 'quest_free_orchard':
+        if (peteInterviewCompleted) return 'completed';
+        if (currentDay >= 3 || encoreUnlocked) return 'ready';
+        return fencesDropped ? 'in_progress' : 'available';
+      case 'quest_great_walnut_ritual':
+        if (jimiQuestCompleted) return 'completed';
+        if (jimiQuestStarted && hasHarmonyMilestoneForJimi) return 'ready';
+        return jimiQuestStarted ? 'in_progress' : 'available';
+      default:
+        return 'available';
+    }
+  }
 
   bool get hasHarmonyMilestoneForJimi =>
       mossBridgesBloomed ||
@@ -352,11 +604,44 @@ class WorldFlags extends Equatable {
     int? blueberryExpiryDay,
     double? blueberryExpiryMinute,
     int? blueberriesSharedCount,
+    bool? sunnyPhotoQuestStarted,
+    bool? sunnyPhotoQuestCompleted,
+    bool? roxieStringQuestStarted,
+    bool? hasNickelString,
+    bool? roxieStringQuestCompleted,
+    bool? pennyTapestryQuestStarted,
+    Set<String>? fabricSwatches,
+    bool? pennyTapestryQuestCompleted,
+    bool? mateoTapeQuestStarted,
+    bool? mateoTapeQuestCompleted,
+    bool? fernCompassQuestStarted,
+    bool? hasBrassCompass,
+    bool? fernCompassQuestCompleted,
+    bool? astraBubbleQuestStarted,
+    bool? bubbledInDome,
+    bool? astraBubbleQuestCompleted,
+    bool? woodyMunchiesQuestStarted,
+    bool? woodyMunchiesQuestCompleted,
+    bool? rustyArcadeQuestStarted,
+    bool? rustyArcadeQuestCompleted,
+    bool? daisyFreeBubblesGifted,
+    int? beachBallMaxRally,
+    Set<String>? collectedGroundBeadIds,
     bool? playerSwaying,
     bool? playerDancing,
     int? playerDanceStyle,
     double? crowdAura,
     bool? justListenStageMode,
+    double? speedBuffSec,
+    double? speedBuffBonus,
+    String? activeFoodBuffLabel,
+    bool clearFoodBuffLabel = false,
+    double? mudGripSec,
+    double? fireflyAuraSec,
+    bool? sparklerLit,
+    bool? picnicBlanketDeployed,
+    double? picnicBlanketX,
+    double? picnicBlanketY,
   }) {
     return WorldFlags(
       fencesDropped: fencesDropped ?? this.fencesDropped,
@@ -420,11 +705,64 @@ class WorldFlags extends Equatable {
           blueberryExpiryMinute ?? this.blueberryExpiryMinute,
       blueberriesSharedCount:
           blueberriesSharedCount ?? this.blueberriesSharedCount,
+      sunnyPhotoQuestStarted:
+          sunnyPhotoQuestStarted ?? this.sunnyPhotoQuestStarted,
+      sunnyPhotoQuestCompleted:
+          sunnyPhotoQuestCompleted ?? this.sunnyPhotoQuestCompleted,
+      roxieStringQuestStarted:
+          roxieStringQuestStarted ?? this.roxieStringQuestStarted,
+      hasNickelString: hasNickelString ?? this.hasNickelString,
+      roxieStringQuestCompleted:
+          roxieStringQuestCompleted ?? this.roxieStringQuestCompleted,
+      pennyTapestryQuestStarted:
+          pennyTapestryQuestStarted ?? this.pennyTapestryQuestStarted,
+      fabricSwatches: fabricSwatches ?? this.fabricSwatches,
+      pennyTapestryQuestCompleted:
+          pennyTapestryQuestCompleted ?? this.pennyTapestryQuestCompleted,
+      mateoTapeQuestStarted:
+          mateoTapeQuestStarted ?? this.mateoTapeQuestStarted,
+      mateoTapeQuestCompleted:
+          mateoTapeQuestCompleted ?? this.mateoTapeQuestCompleted,
+      fernCompassQuestStarted:
+          fernCompassQuestStarted ?? this.fernCompassQuestStarted,
+      hasBrassCompass: hasBrassCompass ?? this.hasBrassCompass,
+      fernCompassQuestCompleted:
+          fernCompassQuestCompleted ?? this.fernCompassQuestCompleted,
+      astraBubbleQuestStarted:
+          astraBubbleQuestStarted ?? this.astraBubbleQuestStarted,
+      bubbledInDome: bubbledInDome ?? this.bubbledInDome,
+      astraBubbleQuestCompleted:
+          astraBubbleQuestCompleted ?? this.astraBubbleQuestCompleted,
+      woodyMunchiesQuestStarted:
+          woodyMunchiesQuestStarted ?? this.woodyMunchiesQuestStarted,
+      woodyMunchiesQuestCompleted:
+          woodyMunchiesQuestCompleted ?? this.woodyMunchiesQuestCompleted,
+      rustyArcadeQuestStarted:
+          rustyArcadeQuestStarted ?? this.rustyArcadeQuestStarted,
+      rustyArcadeQuestCompleted:
+          rustyArcadeQuestCompleted ?? this.rustyArcadeQuestCompleted,
+      daisyFreeBubblesGifted:
+          daisyFreeBubblesGifted ?? this.daisyFreeBubblesGifted,
+      beachBallMaxRally: beachBallMaxRally ?? this.beachBallMaxRally,
+      collectedGroundBeadIds:
+          collectedGroundBeadIds ?? this.collectedGroundBeadIds,
       playerSwaying: playerSwaying ?? this.playerSwaying,
       playerDancing: playerDancing ?? this.playerDancing,
       playerDanceStyle: playerDanceStyle ?? this.playerDanceStyle,
       crowdAura: crowdAura ?? this.crowdAura,
       justListenStageMode: justListenStageMode ?? this.justListenStageMode,
+      speedBuffSec: speedBuffSec ?? this.speedBuffSec,
+      speedBuffBonus: speedBuffBonus ?? this.speedBuffBonus,
+      activeFoodBuffLabel: clearFoodBuffLabel
+          ? null
+          : (activeFoodBuffLabel ?? this.activeFoodBuffLabel),
+      mudGripSec: mudGripSec ?? this.mudGripSec,
+      fireflyAuraSec: fireflyAuraSec ?? this.fireflyAuraSec,
+      sparklerLit: sparklerLit ?? this.sparklerLit,
+      picnicBlanketDeployed:
+          picnicBlanketDeployed ?? this.picnicBlanketDeployed,
+      picnicBlanketX: picnicBlanketX ?? this.picnicBlanketX,
+      picnicBlanketY: picnicBlanketY ?? this.picnicBlanketY,
     );
   }
 
@@ -483,6 +821,48 @@ class WorldFlags extends Equatable {
           'blueberryExpiryMinute': blueberryExpiryMinute,
         if (blueberriesSharedCount > 0)
           'blueberriesSharedCount': blueberriesSharedCount,
+        if (sunnyPhotoQuestStarted)
+          'sunnyPhotoQuestStarted': sunnyPhotoQuestStarted,
+        if (sunnyPhotoQuestCompleted)
+          'sunnyPhotoQuestCompleted': sunnyPhotoQuestCompleted,
+        if (roxieStringQuestStarted)
+          'roxieStringQuestStarted': roxieStringQuestStarted,
+        if (hasNickelString) 'hasNickelString': hasNickelString,
+        if (roxieStringQuestCompleted)
+          'roxieStringQuestCompleted': roxieStringQuestCompleted,
+        if (pennyTapestryQuestStarted)
+          'pennyTapestryQuestStarted': pennyTapestryQuestStarted,
+        if (fabricSwatches.isNotEmpty)
+          'fabricSwatches': fabricSwatches.toList()..sort(),
+        if (pennyTapestryQuestCompleted)
+          'pennyTapestryQuestCompleted': pennyTapestryQuestCompleted,
+        if (mateoTapeQuestStarted)
+          'mateoTapeQuestStarted': mateoTapeQuestStarted,
+        if (mateoTapeQuestCompleted)
+          'mateoTapeQuestCompleted': mateoTapeQuestCompleted,
+        if (fernCompassQuestStarted)
+          'fernCompassQuestStarted': fernCompassQuestStarted,
+        if (hasBrassCompass) 'hasBrassCompass': hasBrassCompass,
+        if (fernCompassQuestCompleted)
+          'fernCompassQuestCompleted': fernCompassQuestCompleted,
+        if (astraBubbleQuestStarted)
+          'astraBubbleQuestStarted': astraBubbleQuestStarted,
+        if (bubbledInDome) 'bubbledInDome': bubbledInDome,
+        if (astraBubbleQuestCompleted)
+          'astraBubbleQuestCompleted': astraBubbleQuestCompleted,
+        if (woodyMunchiesQuestStarted)
+          'woodyMunchiesQuestStarted': woodyMunchiesQuestStarted,
+        if (woodyMunchiesQuestCompleted)
+          'woodyMunchiesQuestCompleted': woodyMunchiesQuestCompleted,
+        if (rustyArcadeQuestStarted)
+          'rustyArcadeQuestStarted': rustyArcadeQuestStarted,
+        if (rustyArcadeQuestCompleted)
+          'rustyArcadeQuestCompleted': rustyArcadeQuestCompleted,
+        if (daisyFreeBubblesGifted)
+          'daisyFreeBubblesGifted': daisyFreeBubblesGifted,
+        if (beachBallMaxRally > 0) 'beachBallMaxRally': beachBallMaxRally,
+        if (collectedGroundBeadIds.isNotEmpty)
+          'collectedGroundBeadIds': collectedGroundBeadIds.toList()..sort(),
       };
 
   @override
@@ -537,11 +917,43 @@ class WorldFlags extends Equatable {
         blueberryExpiryDay,
         blueberryExpiryMinute,
         blueberriesSharedCount,
+        sunnyPhotoQuestStarted,
+        sunnyPhotoQuestCompleted,
+        roxieStringQuestStarted,
+        hasNickelString,
+        roxieStringQuestCompleted,
+        pennyTapestryQuestStarted,
+        fabricSwatches,
+        pennyTapestryQuestCompleted,
+        mateoTapeQuestStarted,
+        mateoTapeQuestCompleted,
+        fernCompassQuestStarted,
+        hasBrassCompass,
+        fernCompassQuestCompleted,
+        astraBubbleQuestStarted,
+        bubbledInDome,
+        astraBubbleQuestCompleted,
+        woodyMunchiesQuestStarted,
+        woodyMunchiesQuestCompleted,
+        rustyArcadeQuestStarted,
+        rustyArcadeQuestCompleted,
+        daisyFreeBubblesGifted,
+        beachBallMaxRally,
+        collectedGroundBeadIds,
         playerSwaying,
         playerDancing,
         playerDanceStyle,
         crowdAura,
         justListenStageMode,
+        speedBuffSec,
+        speedBuffBonus,
+        activeFoodBuffLabel,
+        mudGripSec,
+        fireflyAuraSec,
+        sparklerLit,
+        picnicBlanketDeployed,
+        picnicBlanketX,
+        picnicBlanketY,
       ];
 }
 
@@ -746,5 +1158,87 @@ class WorldFlagsNotifier extends StateNotifier<WorldFlags> {
       return pastExpiry;
     }
     return false;
+  }
+
+  void addFabricSwatch(String swatchId) {
+    if (state.fabricSwatches.contains(swatchId)) return;
+    state = state.copyWith(
+      fabricSwatches: {...state.fabricSwatches, swatchId},
+    );
+  }
+
+  bool collectGroundBead(String beadId) {
+    if (state.collectedGroundBeadIds.contains(beadId)) return false;
+    state = state.copyWith(
+      collectedGroundBeadIds: {...state.collectedGroundBeadIds, beadId},
+    );
+    return true;
+  }
+
+  bool recordBeachBallRally(int rally) {
+    if (rally <= state.beachBallMaxRally) return false;
+    state = state.copyWith(beachBallMaxRally: rally);
+    return true;
+  }
+
+  void applyFoodBuff({
+    required String label,
+    double speedBonus = 0.0,
+    double speedDuration = 0.0,
+    double mudGripDuration = 0.0,
+    double fireflyDuration = 0.0,
+    double auraBoost = 0.0,
+  }) {
+    state = state.copyWith(
+      activeFoodBuffLabel: label,
+      speedBuffBonus: speedDuration > 0 ? speedBonus : state.speedBuffBonus,
+      speedBuffSec:
+          speedDuration > state.speedBuffSec ? speedDuration : state.speedBuffSec,
+      mudGripSec:
+          mudGripDuration > state.mudGripSec ? mudGripDuration : state.mudGripSec,
+      fireflyAuraSec: fireflyDuration > state.fireflyAuraSec
+          ? fireflyDuration
+          : state.fireflyAuraSec,
+      crowdAura: (state.crowdAura + auraBoost).clamp(0.0, 1.0),
+    );
+  }
+
+  void tickBuffTimers(double dt) {
+    if (dt <= 0) return;
+    if (state.speedBuffSec <= 0 &&
+        state.mudGripSec <= 0 &&
+        state.fireflyAuraSec <= 0) {
+      return;
+    }
+    final nextSpeed = (state.speedBuffSec - dt).clamp(0.0, 9999.0);
+    final nextMud = (state.mudGripSec - dt).clamp(0.0, 9999.0);
+    final nextFirefly = (state.fireflyAuraSec - dt).clamp(0.0, 9999.0);
+    final allExpired = nextSpeed <= 0 && nextMud <= 0 && nextFirefly <= 0;
+    state = state.copyWith(
+      speedBuffSec: nextSpeed,
+      speedBuffBonus: nextSpeed > 0 ? state.speedBuffBonus : 0.0,
+      mudGripSec: nextMud,
+      fireflyAuraSec: nextFirefly,
+      clearFoodBuffLabel: allExpired,
+    );
+  }
+
+  void toggleSparkler() {
+    state = state.copyWith(sparklerLit: !state.sparklerLit);
+  }
+
+  void setSparklerLit(bool lit) {
+    if (state.sparklerLit == lit) return;
+    state = state.copyWith(sparklerLit: lit);
+  }
+
+  bool togglePicnicBlanket(double x, double y) {
+    final next = !state.picnicBlanketDeployed;
+    state = state.copyWith(
+      picnicBlanketDeployed: next,
+      picnicBlanketX: next ? x : state.picnicBlanketX,
+      picnicBlanketY: next ? y : state.picnicBlanketY,
+    );
+    return next;
   }
 }
